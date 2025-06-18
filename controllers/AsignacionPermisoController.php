@@ -110,7 +110,7 @@ class AsignacionPermisoController extends ActiveRecord
                            ua.usuario_nom1 as asigno_nom1, ua.usuario_ape1 as asigno_ape1,
                            ap.asignacion_fecha,
                            ap.asignacion_fecha_quito
-                    FROM asig_permisos ap
+                    FROM mrml_asig_permisos ap
                     INNER JOIN mrml_permiso p ON ap.asignacion_permiso_id = p.permiso_id
                     INNER JOIN mrml_aplicacion a ON p.app_id = a.app_id
                     LEFT JOIN mrml_usuario u ON ap.asignacion_usuario_id = u.usuario_id
