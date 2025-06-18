@@ -7,6 +7,7 @@ class Permiso extends ActiveRecord
     public static $tabla = 'mrml_permiso';
     
     public static $columnasDB = [
+        'usuario_id',
         'app_id',
         'permiso_nombre',
         'permiso_clave',
@@ -22,6 +23,7 @@ class Permiso extends ActiveRecord
 
     // Propiedades
     public $permiso_id;
+    public $usuario_id;
     public $app_id;
     public $permiso_nombre;
     public $permiso_clave;
@@ -34,6 +36,7 @@ class Permiso extends ActiveRecord
     public function __construct($args = [])
     {
         $this->permiso_id = $args['permiso_id'] ?? null;
+        $this->usuario_id = $args['usuario_id'] ?? null;
         $this->app_id = $args['app_id'] ?? null;
         $this->permiso_nombre = $args['permiso_nombre'] ?? '';
         $this->permiso_clave = $args['permiso_clave'] ?? '';
@@ -74,7 +77,7 @@ class Permiso extends ActiveRecord
     {
         $sql = "SELECT p.*, a.app_nombre_corto 
                 FROM " . self::$tabla . " p 
-                INNER JOIN aplicacion a ON p.app_id = a.app_id 
+                INNER JOIN mrml_aplicacion a ON p.app_id = a.app_id 
                 WHERE p.usuario_id = " . intval($usuarioId) . " AND p.permiso_situacion = 1 
                 ORDER BY a.app_nombre_corto, p.permiso_nombre";
         return self::fetchArray($sql);
@@ -84,7 +87,7 @@ class Permiso extends ActiveRecord
     {
         $sql = "SELECT p.*, u.usuario_nom1, u.usuario_ape1
                 FROM " . self::$tabla . " p 
-                LEFT JOIN usuario u ON p.usuario_id = u.usuario_id
+                LEFT JOIN mrml_usuario u ON p.usuario_id = u.usuario_id
                 WHERE p.app_id = " . intval($appId) . " AND p.permiso_situacion = 1 
                 ORDER BY p.permiso_tipo, p.permiso_nombre";
         return self::fetchArray($sql);

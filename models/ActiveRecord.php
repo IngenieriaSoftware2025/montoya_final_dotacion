@@ -183,27 +183,46 @@ class ActiveRecord {
         return $array;
     }
 
-    public static function fetchArray($query){
-        $resultado = self::$db->query($query);
-        $respuesta = $resultado->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($respuesta as $value) {
-            $data[] = array_change_key_case( array_map( 'utf8_encode', $value) ); 
-        }
-        $resultado->closeCursor();
-        return $data;
-    }
 
-        
-    public static function fetchFirst($query){
-        $resultado = self::$db->query($query);
-        $respuesta = $resultado->fetchAll(PDO::FETCH_ASSOC);
-        $data = [];
-        foreach ($respuesta as $value) {
-            $data[] = array_change_key_case( array_map( 'utf8_encode', $value) ); 
+// Versión simplificada del método fetchArray
+
+public static function fetchArray($query)
+{
+    $resultado = self::$db->query($query);
+    $respuesta = $resultado->fetchAll(PDO::FETCH_ASSOC);
+    $data = [];
+    
+    foreach ($respuesta as $value) {
+        $row = [];
+        foreach ($value as $key => $val) {
+            $row[strtolower($key)] = $val;
         }
-        $resultado->closeCursor();
-        return array_shift($data);
+        $data[] = $row;
     }
+    
+    $resultado->closeCursor();
+    return $data;
+}
+
+
+
+public static function fetchFirst($query)
+{
+    $resultado = self::$db->query($query);
+    $respuesta = $resultado->fetchAll(PDO::FETCH_ASSOC);
+    $data = [];
+    
+    foreach ($respuesta as $value) {
+        $row = [];
+        foreach ($value as $key => $val) {
+            $row[strtolower($key)] = $val;
+        }
+        $data[] = $row;
+    }
+    
+    $resultado->closeCursor();
+    return array_shift($data);
+}
 
     protected static function crearObjeto($registro) {
         $objeto = new static;

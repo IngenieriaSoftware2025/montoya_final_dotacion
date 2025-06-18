@@ -1,4 +1,4 @@
-
+// tipodotacion/index.js
 import Swal from "sweetalert2";
 import DataTable from "datatables.net-bs5";
 import { validarFormulario } from "../funciones";
@@ -17,6 +17,7 @@ const ValidarNombreTipo = () => {
     if (nombre.length >= 2) {
         tipo_dotacion_nombre.classList.add('is-valid');
         tipo_dotacion_nombre.classList.remove('is-invalid');
+        return true;
     } else if (nombre.length > 0) {
         tipo_dotacion_nombre.classList.add('is-invalid');
         tipo_dotacion_nombre.classList.remove('is-valid');
@@ -25,8 +26,10 @@ const ValidarNombreTipo = () => {
             title: "Nombre inválido", 
             text: "El nombre debe tener al menos 2 caracteres" 
         });
+        return false;
     } else {
         tipo_dotacion_nombre.classList.remove('is-valid', 'is-invalid');
+        return true;
     }
 };
 
@@ -65,13 +68,15 @@ const GuardarTipoDotacion = async (event) => {
             Swal.fire({ 
                 icon: "success", 
                 title: "Tipo de dotación registrado", 
-                text: mensaje 
+                text: mensaje,
+                timer: 2000,
+                showConfirmButton: false
             });
             limpiarTodo();
             BuscarTiposDotacion();
         } else {
             Swal.fire({ 
-                icon: "info", 
+                icon: "error", 
                 title: "Error", 
                 text: mensaje 
             });
@@ -80,8 +85,8 @@ const GuardarTipoDotacion = async (event) => {
         console.error(error);
         Swal.fire({ 
             icon: "error", 
-            title: "Error", 
-            text: "Ocurrió un error al procesar la solicitud" 
+            title: "Error de conexión", 
+            text: "No se pudo completar la operación" 
         });
     }
     BtnGuardar.disabled = false;
@@ -95,11 +100,13 @@ const BuscarTiposDotacion = async () => {
         const { codigo, mensaje, data } = await res.json();
         if (codigo == 1) {
             datatable.clear().draw();
-            datatable.rows.add(data).draw();
+            if (data.length > 0) {
+                datatable.rows.add(data).draw();
+            }
         } else {
             Swal.fire({ 
                 icon: "info", 
-                title: "Error", 
+                title: "Sin datos", 
                 text: mensaje 
             });
         }
@@ -107,8 +114,8 @@ const BuscarTiposDotacion = async () => {
         console.error(error);
         Swal.fire({ 
             icon: "error", 
-            title: "Error", 
-            text: "Error al cargar los tipos de dotación" 
+            title: "Error de conexión", 
+            text: "No se pudieron cargar los tipos de dotación" 
         });
     }
 };
@@ -121,15 +128,18 @@ const datatable = new DataTable('#TableTiposDotacion', {
         { 
             title: "No.", 
             data: "tipo_dotacion_id", 
-            render: (data, type, row, meta) => meta.row + 1 
+            render: (data, type, row, meta) => meta.row + 1,
+            width: '8%'
         },
         { 
             title: "Nombre", 
-            data: "tipo_dotacion_nombre" 
+            data: "tipo_dotacion_nombre",
+            width: '25%'
         },
         { 
             title: "Descripción", 
-            data: "tipo_dotacion_descripcion" 
+            data: "tipo_dotacion_descripcion",
+            width: '35%'
         },
         { 
             title: "Fecha de Registro", 
@@ -140,40 +150,56 @@ const datatable = new DataTable('#TableTiposDotacion', {
                     return fecha.toLocaleDateString('es-GT');
                 }
                 return '';
-            }
+            },
+            width: '15%'
         },
         {
             title: "Acciones", 
             data: "tipo_dotacion_id",
-            render: (id, type, row) => `
-                <div class="d-flex justify-content-center gap-1">
-                    <button class="btn btn-warning btn-sm modificar" 
-                            data-id="${id}" 
-                            data-json='${JSON.stringify(row)}'
-                            title="Modificar">
-                        ✏️
-                    </button>
-                    <button class="btn btn-danger btn-sm eliminar" 
-                            data-id="${id}"
-                            title="Eliminar">
-                        🗑️
-                    </button>
-                </div>
-            `
+            render: (id, type, row) => {
+                const rowJson = JSON.stringify(row).replace(/'/g, "&#39;");
+                return `
+                    <div class="d-flex justify-content-center gap-1">
+                        <button class="btn btn-warning btn-sm modificar" 
+                                data-id="${id}" 
+                                data-json='${rowJson}'
+                                title="Modificar">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm eliminar" 
+                                data-id="${id}"
+                                title="Eliminar">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </div>
+                `;
+            },
+            orderable: false,
+            searchable: false,
+            width: '17%'
         }
     ]
 });
 
 // Llenar formulario para modificar
 const llenarFormulario = (e) => {
-    const datos = JSON.parse(e.currentTarget.dataset.json);
-    for (let key in datos) {
-        const input = document.getElementById(key);
-        if (input) input.value = datos[key];
+    try {
+        const datos = JSON.parse(e.currentTarget.dataset.json);
+        for (let key in datos) {
+            const input = document.getElementById(key);
+            if (input) input.value = datos[key];
+        }
+        BtnGuardar.classList.add('d-none');
+        BtnModificar.classList.remove('d-none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+        console.error('Error parsing JSON:', error);
+        Swal.fire({ 
+            icon: "error", 
+            title: "Error", 
+            text: "Error al cargar los datos para modificar" 
+        });
     }
-    BtnGuardar.classList.add('d-none');
-    BtnModificar.classList.remove('d-none');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 // Limpiar todo el formulario
@@ -221,7 +247,9 @@ const ModificarTipoDotacion = async (event) => {
             Swal.fire({ 
                 icon: "success", 
                 title: "Tipo de dotación modificado", 
-                text: mensaje 
+                text: mensaje,
+                timer: 2000,
+                showConfirmButton: false
             });
             limpiarTodo();
             BuscarTiposDotacion();
@@ -236,8 +264,8 @@ const ModificarTipoDotacion = async (event) => {
         console.error(error);
         Swal.fire({ 
             icon: "error", 
-            title: "Error", 
-            text: "Ocurrió un error al procesar la solicitud" 
+            title: "Error de conexión", 
+            text: "No se pudo completar la modificación" 
         });
     }
     BtnModificar.disabled = false;
@@ -266,7 +294,9 @@ const EliminarTipoDotacion = async (e) => {
                 Swal.fire({ 
                     icon: "success", 
                     title: "Eliminado", 
-                    text: mensaje 
+                    text: mensaje,
+                    timer: 2000,
+                    showConfirmButton: false
                 });
                 BuscarTiposDotacion();
             } else {
@@ -280,8 +310,8 @@ const EliminarTipoDotacion = async (e) => {
             console.error(error);
             Swal.fire({ 
                 icon: "error", 
-                title: "Error", 
-                text: "Error al eliminar el tipo de dotación" 
+                title: "Error de conexión", 
+                text: "No se pudo eliminar el tipo de dotación" 
             });
         }
     }
@@ -290,10 +320,18 @@ const EliminarTipoDotacion = async (e) => {
 // Eventos del DOM
 document.addEventListener('DOMContentLoaded', () => {
     BuscarTiposDotacion();
+    
+    // Validaciones en tiempo real
     tipo_dotacion_nombre.addEventListener('change', ValidarNombreTipo);
+    
+    // Eventos de formulario
     FormularioTiposDotacion.addEventListener('submit', GuardarTipoDotacion);
     BtnModificar.addEventListener('click', ModificarTipoDotacion);
     BtnLimpiar.addEventListener('click', limpiarTodo);
+    
+    // Eventos de DataTable
     datatable.on('click', '.modificar', llenarFormulario);
     datatable.on('click', '.eliminar', EliminarTipoDotacion);
+    
+    console.log('Módulo de tipos de dotación inicializado correctamente');
 });

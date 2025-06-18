@@ -4,93 +4,219 @@ namespace Model;
 
 class Empleado extends ActiveRecord 
 {
-    public static $tabla = 'mrml_empleado';
-
+    public static $tabla = 'mrml_empleados';
     public static $columnasDB = [
-        'empleado_nombres',
-        'empleado_apellidos',
+        'empleado_nom1',
+        'empleado_nom2',
+        'empleado_ape1',
+        'empleado_ape2',
         'empleado_dpi',
-        'empleado_puesto',
-        'empleado_departamento',
-        'empleado_fecha_ingreso',
-        'empleado_telefono',
+        'empleado_tel',
         'empleado_correo',
-        'empleado_direccion',
+        'empleado_especialidad',
+        'empleado_salario',
         'empleado_situacion'
     ];
 
     public static $idTabla = 'empleado_id';
-
-    // Propiedades
+    
+    // Propiedades del modelo
     public $empleado_id;
-    public $empleado_nombres;
-    public $empleado_apellidos;
+    public $empleado_nom1;
+    public $empleado_nom2;
+    public $empleado_ape1;
+    public $empleado_ape2;
     public $empleado_dpi;
-    public $empleado_puesto;
-    public $empleado_departamento;
-    public $empleado_fecha_ingreso;
-    public $empleado_telefono;
+    public $empleado_tel;
     public $empleado_correo;
-    public $empleado_direccion;
+    public $empleado_especialidad;
+    public $empleado_fecha_contratacion;
+    public $empleado_salario;
     public $empleado_situacion;
-    public $empleado_fecha_registro;
 
     public function __construct($args = [])
     {
         $this->empleado_id = $args['empleado_id'] ?? null;
-        $this->empleado_nombres = $args['empleado_nombres'] ?? '';
-        $this->empleado_apellidos = $args['empleado_apellidos'] ?? '';
+        $this->empleado_nom1 = $args['empleado_nom1'] ?? '';
+        $this->empleado_nom2 = $args['empleado_nom2'] ?? '';
+        $this->empleado_ape1 = $args['empleado_ape1'] ?? '';
+        $this->empleado_ape2 = $args['empleado_ape2'] ?? '';
         $this->empleado_dpi = $args['empleado_dpi'] ?? '';
-        $this->empleado_puesto = $args['empleado_puesto'] ?? '';
-        $this->empleado_departamento = $args['empleado_departamento'] ?? '';
-        $this->empleado_fecha_ingreso = $args['empleado_fecha_ingreso'] ?? null;
-        $this->empleado_telefono = $args['empleado_telefono'] ?? '';
+        $this->empleado_tel = $args['empleado_tel'] ?? '';
         $this->empleado_correo = $args['empleado_correo'] ?? '';
-        $this->empleado_direccion = $args['empleado_direccion'] ?? '';
+        $this->empleado_especialidad = $args['empleado_especialidad'] ?? '';
+        $this->empleado_salario = $args['empleado_salario'] ?? 0;
         $this->empleado_situacion = $args['empleado_situacion'] ?? 1;
-        $this->empleado_fecha_registro = $args['empleado_fecha_registro'] ?? null;
     }
 
-    public static function verificarDpiCorreoExistente($dpi, $correo, $excluirId = null)
+    /**
+     * Validaciones antes de guardar
+     */
+    public function validar()
     {
-        $dpi = self::sanitizarCadena($dpi);
-        $correo = self::sanitizarCadena($correo);
+        $errores = [];
 
-        $condDpi = "empleado_dpi = '$dpi' AND empleado_situacion = 1";
-        $condCorreo = "empleado_correo = '$correo' AND empleado_situacion = 1";
-
-        if ($excluirId) {
-            $condDpi .= " AND empleado_id != " . intval($excluirId);
-            $condCorreo .= " AND empleado_id != " . intval($excluirId);
+        if (!$this->empleado_nom1) {
+            $errores[] = 'El primer nombre es obligatorio';
         }
 
-        $sqlDpi = "SELECT COUNT(*) as count FROM mrml_empleado WHERE $condDpi";
-        $sqlCorreo = "SELECT COUNT(*) as count FROM mrml_empleado WHERE $condCorreo";
+        if (!$this->empleado_ape1) {
+            $errores[] = 'El primer apellido es obligatorio';
+        }
 
-        $resDpi = self::fetchArray($sqlDpi);
-        $resCorreo = self::fetchArray($sqlCorreo);
+        if (!$this->empleado_tel) {
+            $errores[] = 'El teléfono es obligatorio';
+        }
 
-        return [
-            'dpi_existe' => ($resDpi[0]['count'] ?? 0) > 0,
-            'correo_existe' => ($resCorreo[0]['count'] ?? 0) > 0
-        ];
+        if (!$this->empleado_dpi) {
+            $errores[] = 'El DPI es obligatorio';
+        }
+
+        if (!$this->empleado_correo) {
+            $errores[] = 'El correo es obligatorio';
+        }
+
+        if (!$this->empleado_especialidad) {
+            $errores[] = 'La especialidad es obligatoria';
+        }
+
+        if (!$this->empleado_salario || $this->empleado_salario <= 0) {
+            $errores[] = 'El salario debe ser mayor a 0';
+        }
+
+        return $errores;
     }
 
+    /**
+     * Verificar si existe empleado con correo o DPI - CORREGIDO
+     */
+    public static function verificarEmpleadoExistente($correo, $dpi, $excluirId = null)
+    {
+        try {
+            $correo = self::sanitizarCadena($correo);
+            $dpi = self::sanitizarCadena($dpi);
+
+            $condCorreo = "empleado_correo = '$correo' AND empleado_situacion = 1";
+            $condDpi = "empleado_dpi = '$dpi' AND empleado_situacion = 1";
+
+            if ($excluirId) {
+                $condCorreo .= " AND empleado_id != " . intval($excluirId);
+                $condDpi .= " AND empleado_id != " . intval($excluirId);
+            }
+
+            $sql = "
+                SELECT 
+                    (SELECT COUNT(*) FROM empleado WHERE $condCorreo) AS correo_existe,
+                    (SELECT COUNT(*) FROM empleado WHERE $condDpi) AS dpi_existe
+            ";
+
+            $resultado = self::fetchArray($sql);
+            
+            // ASEGURAR que siempre retorne la estructura correcta
+            if (!empty($resultado) && isset($resultado[0])) {
+                return [
+                    'correo_existe' => intval($resultado[0]['correo_existe']),
+                    'dpi_existe' => intval($resultado[0]['dpi_existe'])
+                ];
+            } else {
+                return ['correo_existe' => 0, 'dpi_existe' => 0];
+            }
+
+        } catch (\Exception $e) {
+            error_log("Error en verificarEmpleadoExistente: " . $e->getMessage());
+            // Fallback seguro en caso de error
+            return ['correo_existe' => 0, 'dpi_existe' => 0];
+        }
+    }
+
+    /**
+     * Obtener empleado por ID
+     */
+    public static function obtenerPorId($id)
+    {
+        try {
+            $query = "SELECT * FROM " . static::$tabla . " WHERE " . static::$idTabla . " = ?";
+            $resultado = self::fetchFirst($query, [$id]);
+            
+            if ($resultado) {
+                return new static($resultado);
+            }
+            
+            return null;
+            
+        } catch (\Exception $e) {
+            error_log("Error en obtenerPorId: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Obtener empleado activo por ID
+     */
+    public static function obtenerEmpleadoActivo($id)
+    {
+        try {
+            $query = "SELECT * FROM " . static::$tabla . " WHERE " . static::$idTabla . " = ? AND empleado_situacion = 1";
+            $resultado = self::fetchFirst($query, [$id]);
+            
+            if ($resultado) {
+                return new static($resultado);
+            }
+            
+            return null;
+            
+        } catch (\Exception $e) {
+            error_log("Error en obtenerEmpleadoActivo: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Buscar el primer registro que coincida con la consulta - MEJORADO
+     */
+    public static function fetchFirst($query, $params = [])
+    {
+        try {
+            $db = self::$db;
+            $stmt = $db->prepare($query);
+            $stmt->execute($params);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            return $result ?: null;
+            
+        } catch (\Exception $e) {
+            error_log("Error en fetchFirst: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Obtener empleados activos para selects
+     */
     public static function obtenerEmpleadosActivos()
     {
-        $sql = "SELECT empleado_id, (empleado_nombres || ' ' || empleado_apellidos) AS nombre_completo 
-                FROM mrml_empleado 
-                WHERE empleado_situacion = 1 
-                ORDER BY empleado_nombres ASC";
+        $sql = "SELECT 
+                empleado_id,
+                CONCAT(empleado_nom1, ' ', empleado_ape1) AS empleado_nombre_completo
+                FROM empleado
+                WHERE empleado_situacion = 1
+                ORDER BY empleado_nom1 ASC";
+        
         return self::fetchArray($sql);
     }
 
-    public static function eliminarEmpleado($id)
+    /**
+     * Eliminar empleado (cambiar situación) - NUEVO
+     */
+    public static function EliminarEmpleado($id)
     {
         $sql = "UPDATE " . self::$tabla . " SET empleado_situacion = 0 WHERE " . self::$idTabla . " = " . intval($id);
         return self::$db->exec($sql);
     }
 
+    /**
+     * Sanear cadena de entrada
+     */
     private static function sanitizarCadena($valor)
     {
         return htmlspecialchars(trim($valor), ENT_QUOTES, 'UTF-8');

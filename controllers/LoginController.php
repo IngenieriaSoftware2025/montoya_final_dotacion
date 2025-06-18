@@ -10,7 +10,7 @@ class LoginController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        // CORREGIDO: verificar si ya hay sesión antes de iniciarla
+        // verificar si ya hay sesión antes de iniciarla
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }

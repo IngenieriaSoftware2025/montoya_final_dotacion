@@ -1,4 +1,3 @@
-
 // talla/index.js
 import Swal from "sweetalert2";
 import DataTable from "datatables.net-bs5";
@@ -11,6 +10,8 @@ const BtnGuardar = document.getElementById('BtnGuardar');
 const BtnModificar = document.getElementById('BtnModificar');
 const BtnLimpiar = document.getElementById('BtnLimpiar');
 const talla_nombre = document.getElementById('talla_nombre');
+const talla_descripcion = document.getElementById('talla_descripcion');
+const talla_tipo = document.getElementById('talla_tipo');
 
 // Validar Nombre de Talla
 const ValidarNombreTalla = () => {
@@ -18,6 +19,7 @@ const ValidarNombreTalla = () => {
     if (nombre.length >= 1) {
         talla_nombre.classList.add('is-valid');
         talla_nombre.classList.remove('is-invalid');
+        return true;
     } else if (nombre.length > 0) {
         talla_nombre.classList.add('is-invalid');
         talla_nombre.classList.remove('is-valid');
@@ -26,8 +28,49 @@ const ValidarNombreTalla = () => {
             title: "Nombre inválido", 
             text: "El nombre de la talla es obligatorio" 
         });
+        return false;
     } else {
         talla_nombre.classList.remove('is-valid', 'is-invalid');
+        return true;
+    }
+};
+
+// Validar Descripción
+const ValidarDescripcion = () => {
+    const descripcion = talla_descripcion.value.trim();
+    if (descripcion.length >= 2) {
+        talla_descripcion.classList.add('is-valid');
+        talla_descripcion.classList.remove('is-invalid');
+        return true;
+    } else if (descripcion.length > 0) {
+        talla_descripcion.classList.add('is-invalid');
+        talla_descripcion.classList.remove('is-valid');
+        Swal.fire({ 
+            icon: "error", 
+            title: "Descripción inválida", 
+            text: "La descripción debe tener al menos 2 caracteres" 
+        });
+        return false;
+    } else {
+        talla_descripcion.classList.remove('is-valid', 'is-invalid');
+        return true;
+    }
+};
+
+// Validar Tipo
+const ValidarTipo = () => {
+    const tipo = talla_tipo.value;
+    if (['CALZADO', 'ROPA'].includes(tipo)) {
+        talla_tipo.classList.add('is-valid');
+        talla_tipo.classList.remove('is-invalid');
+        return true;
+    } else if (tipo !== '') {
+        talla_tipo.classList.add('is-invalid');
+        talla_tipo.classList.remove('is-valid');
+        return false;
+    } else {
+        talla_tipo.classList.remove('is-valid', 'is-invalid');
+        return true;
     }
 };
 
@@ -35,6 +78,16 @@ const ValidarNombreTalla = () => {
 const GuardarTalla = async (event) => {
     event.preventDefault();
     BtnGuardar.disabled = true;
+
+    // Validar campos individuales
+    const nombreValido = ValidarNombreTalla();
+    const descripcionValida = ValidarDescripcion();
+    const tipoValido = ValidarTipo();
+
+    if (!nombreValido || !descripcionValida || !tipoValido) {
+        BtnGuardar.disabled = false;
+        return;
+    }
 
     if (!validarFormulario(FormularioTallas, ['talla_id'])) {
         Swal.fire({ 
@@ -56,13 +109,15 @@ const GuardarTalla = async (event) => {
             Swal.fire({ 
                 icon: "success", 
                 title: "Talla registrada", 
-                text: mensaje 
+                text: mensaje,
+                timer: 2000,
+                showConfirmButton: false
             });
             limpiarTodo();
             BuscarTallas();
         } else {
             Swal.fire({ 
-                icon: "info", 
+                icon: "error", 
                 title: "Error", 
                 text: mensaje 
             });
@@ -71,8 +126,8 @@ const GuardarTalla = async (event) => {
         console.error(error);
         Swal.fire({ 
             icon: "error", 
-            title: "Error", 
-            text: "Ocurrió un error al procesar la solicitud" 
+            title: "Error de conexión", 
+            text: "No se pudo completar la operación" 
         });
     }
     BtnGuardar.disabled = false;
@@ -86,11 +141,13 @@ const BuscarTallas = async () => {
         const { codigo, mensaje, data } = await res.json();
         if (codigo == 1) {
             datatable.clear().draw();
-            datatable.rows.add(data).draw();
+            if (data.length > 0) {
+                datatable.rows.add(data).draw();
+            }
         } else {
             Swal.fire({ 
                 icon: "info", 
-                title: "Error", 
+                title: "Sin datos", 
                 text: mensaje 
             });
         }
@@ -98,8 +155,8 @@ const BuscarTallas = async () => {
         console.error(error);
         Swal.fire({ 
             icon: "error", 
-            title: "Error", 
-            text: "Error al cargar las tallas" 
+            title: "Error de conexión", 
+            text: "No se pudieron cargar las tallas" 
         });
     }
 };
@@ -112,23 +169,28 @@ const datatable = new DataTable('#TableTallas', {
         { 
             title: "No.", 
             data: "talla_id", 
-            render: (data, type, row, meta) => meta.row + 1 
+            render: (data, type, row, meta) => meta.row + 1,
+            width: '8%'
         },
         { 
             title: "Nombre", 
-            data: "talla_nombre" 
+            data: "talla_nombre",
+            width: '15%'
         },
         { 
             title: "Descripción", 
-            data: "talla_descripcion" 
+            data: "talla_descripcion",
+            width: '35%'
         },
         { 
             title: "Tipo", 
             data: "talla_tipo",
             render: (data) => {
                 const color = data === 'CALZADO' ? 'primary' : 'success';
-                return `<span class="badge bg-${color}">${data}</span>`;
-            }
+                const icon = data === 'CALZADO' ? 'bi-boots' : 'bi-person-fill';
+                return `<span class="badge bg-${color}"><i class="bi ${icon} me-1"></i>${data}</span>`;
+            },
+            width: '20%'
         },
         {
             title: "Acciones", 
@@ -139,15 +201,18 @@ const datatable = new DataTable('#TableTallas', {
                             data-id="${id}" 
                             data-json='${JSON.stringify(row)}'
                             title="Modificar">
-                        ✏️
+                        <i class="bi bi-pencil-square"></i>
                     </button>
                     <button class="btn btn-danger btn-sm eliminar" 
                             data-id="${id}"
                             title="Eliminar">
-                        🗑️
+                        <i class="bi bi-trash3"></i>
                     </button>
                 </div>
-            `
+            `,
+            orderable: false,
+            searchable: false,
+            width: '22%'
         }
     ]
 });
@@ -179,6 +244,16 @@ const ModificarTalla = async (event) => {
     event.preventDefault();
     BtnModificar.disabled = true;
 
+    // Validar campos individuales
+    const nombreValido = ValidarNombreTalla();
+    const descripcionValida = ValidarDescripcion();
+    const tipoValido = ValidarTipo();
+
+    if (!nombreValido || !descripcionValida || !tipoValido) {
+        BtnModificar.disabled = false;
+        return;
+    }
+
     if (!validarFormulario(FormularioTallas, ['talla_id'])) {
         Swal.fire({ 
             icon: "info", 
@@ -199,7 +274,9 @@ const ModificarTalla = async (event) => {
             Swal.fire({ 
                 icon: "success", 
                 title: "Talla modificada", 
-                text: mensaje 
+                text: mensaje,
+                timer: 2000,
+                showConfirmButton: false
             });
             limpiarTodo();
             BuscarTallas();
@@ -214,8 +291,8 @@ const ModificarTalla = async (event) => {
         console.error(error);
         Swal.fire({ 
             icon: "error", 
-            title: "Error", 
-            text: "Ocurrió un error al procesar la solicitud" 
+            title: "Error de conexión", 
+            text: "No se pudo completar la modificación" 
         });
     }
     BtnModificar.disabled = false;
@@ -244,7 +321,9 @@ const EliminarTalla = async (e) => {
                 Swal.fire({ 
                     icon: "success", 
                     title: "Eliminado", 
-                    text: mensaje 
+                    text: mensaje,
+                    timer: 2000,
+                    showConfirmButton: false
                 });
                 BuscarTallas();
             } else {
@@ -258,8 +337,8 @@ const EliminarTalla = async (e) => {
             console.error(error);
             Swal.fire({ 
                 icon: "error", 
-                title: "Error", 
-                text: "Error al eliminar la talla" 
+                title: "Error de conexión", 
+                text: "No se pudo eliminar la talla" 
             });
         }
     }
@@ -268,10 +347,20 @@ const EliminarTalla = async (e) => {
 // Eventos del DOM
 document.addEventListener('DOMContentLoaded', () => {
     BuscarTallas();
+    
+    // Validaciones en tiempo real
     talla_nombre.addEventListener('change', ValidarNombreTalla);
+    talla_descripcion.addEventListener('change', ValidarDescripcion);
+    talla_tipo.addEventListener('change', ValidarTipo);
+    
+    // Eventos de formulario
     FormularioTallas.addEventListener('submit', GuardarTalla);
     BtnModificar.addEventListener('click', ModificarTalla);
     BtnLimpiar.addEventListener('click', limpiarTodo);
+    
+    // Eventos de DataTable
     datatable.on('click', '.modificar', llenarFormulario);
     datatable.on('click', '.eliminar', EliminarTalla);
+    
+    console.log('Módulo de tallas inicializado correctamente');
 });

@@ -1,2 +1,1 @@
 import { Dropdown } from "bootstrap";
-

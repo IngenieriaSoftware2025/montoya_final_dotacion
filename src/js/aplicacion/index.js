@@ -4,6 +4,7 @@ import DataTable from "datatables.net-bs5";
 import { validarFormulario } from "../funciones";
 import { lenguaje } from "../lenguaje";
 
+
 // Elementos del DOM
 const FormularioAplicaciones = document.getElementById('FormularioAplicaciones');
 const BtnGuardar = document.getElementById('BtnGuardar');

@@ -1,124 +1,88 @@
 <!-- Contenedor principal del formulario -->
 <div class="container mt-5 p-4 rounded-4 shadow-lg bg-light" style="max-width: 900px;">
-  <h3 class="mb-4 text-center text-primary fw-bold">
-    <i class="bi bi-people me-2"></i>Registro de Empleados
-  </h3>
+  <h3 class="mb-4 text-center text-primary fw-bold">Registro de Empleado</h3>
 
   <form name="FormularioEmpleados" id="FormularioEmpleados" method="POST">
     <input type="hidden" id="empleado_id" name="empleado_id">
 
+    <!-- NOMBRES -->
     <div class="row g-3 mb-3">
       <div class="col-md-6">
-        <label for="empleado_nombres" class="form-label">
-          Nombres <span class="text-danger">*</span>
-        </label>
-        <input type="text" 
-               class="form-control" 
-               id="empleado_nombres" 
-               name="empleado_nombres" 
-               required 
-               placeholder="Ej. Juan Carlos"
-               maxlength="100">
+        <label for="empleado_nom1" class="form-label">Primer Nombre <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="empleado_nom1" name="empleado_nom1" required maxlength="50" placeholder="Ej. Juan">
       </div>
       <div class="col-md-6">
-        <label for="empleado_apellidos" class="form-label">
-          Apellidos <span class="text-danger">*</span>
-        </label>
-        <input type="text" 
-               class="form-control" 
-               id="empleado_apellidos" 
-               name="empleado_apellidos" 
-               required 
-               placeholder="Ej. García López"
-               maxlength="100">
+        <label for="empleado_nom2" class="form-label">Segundo Nombre</label>
+        <input type="text" class="form-control" id="empleado_nom2" name="empleado_nom2" maxlength="50" placeholder="Ej. Carlos">
       </div>
     </div>
 
+    <!-- APELLIDOS -->
     <div class="row g-3 mb-3">
       <div class="col-md-6">
-        <label for="empleado_dpi" class="form-label">
-          DPI
-        </label>
-        <input type="text" 
-               class="form-control" 
-               id="empleado_dpi" 
-               name="empleado_dpi" 
-               placeholder="1234567890123"
-               maxlength="13">
+        <label for="empleado_ape1" class="form-label">Primer Apellido <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="empleado_ape1" name="empleado_ape1" required maxlength="50" placeholder="Ej. Pérez">
       </div>
       <div class="col-md-6">
-        <label for="empleado_telefono" class="form-label">
-          Teléfono
-        </label>
-        <input type="text" 
-               class="form-control" 
-               id="empleado_telefono" 
-               name="empleado_telefono" 
-               placeholder="12345678"
-               maxlength="15">
+        <label for="empleado_ape2" class="form-label">Segundo Apellido</label>
+        <input type="text" class="form-control" id="empleado_ape2" name="empleado_ape2" maxlength="50" placeholder="Ej. García">
       </div>
     </div>
 
+    <!-- DPI Y TELÉFONO -->
     <div class="row g-3 mb-3">
       <div class="col-md-6">
-        <label for="empleado_puesto" class="form-label">
-          Puesto
-        </label>
-        <input type="text" 
-               class="form-control" 
-               id="empleado_puesto" 
-               name="empleado_puesto" 
-               placeholder="Ej. Operario, Supervisor"
-               maxlength="50">
+        <label for="empleado_dpi" class="form-label">DPI <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="empleado_dpi" name="empleado_dpi" required maxlength="13" placeholder="Ej. 1234567890123">
       </div>
       <div class="col-md-6">
-        <label for="empleado_departamento" class="form-label">
-          Departamento
-        </label>
-        <input type="text" 
-               class="form-control" 
-               id="empleado_departamento" 
-               name="empleado_departamento" 
-               placeholder="Ej. Producción, Calidad"
-               maxlength="50">
+        <label for="empleado_tel" class="form-label">Teléfono <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="empleado_tel" name="empleado_tel" required maxlength="8" placeholder="Ej. 12345678">
       </div>
     </div>
 
+    <!-- CORREO Y USUARIO -->
     <div class="row g-3 mb-3">
-      <div class="col-md-6">
-        <label for="empleado_correo" class="form-label">
-          Correo Electrónico
-        </label>
-        <input type="email" 
-               class="form-control" 
-               id="empleado_correo" 
-               name="empleado_correo" 
-               placeholder="empleado@empresa.com"
-               maxlength="100">
-      </div>
-      <div class="col-md-6">
-        <label for="empleado_fecha_ingreso" class="form-label">
-          Fecha de Ingreso
-        </label>
-        <input type="date" 
-               class="form-control" 
-               id="empleado_fecha_ingreso" 
-               name="empleado_fecha_ingreso">
+      <div class="col-md-8">
+        <label for="empleado_correo" class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+          <input type="email" class="form-control" id="empleado_correo" name="empleado_correo" required placeholder="ejemplo@correo.com">
+        </div>
       </div>
     </div>
 
-    <div class="mb-3">
-      <label for="empleado_direccion" class="form-label">
-        Dirección
-      </label>
-      <textarea class="form-control" 
-                id="empleado_direccion" 
-                name="empleado_direccion" 
-                rows="3" 
-                placeholder="Dirección completa del empleado..."
-                maxlength="500"></textarea>
+    <!-- ESPECIALIDAD Y SALARIO -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-8">
+        <label for="empleado_especialidad" class="form-label">Especialidad <span class="text-danger">*</span></label>
+        <select class="form-select" id="empleado_especialidad" name="empleado_especialidad" required>
+          <option value="">Seleccione una especialidad</option>
+          <option value="Técnico en Reparación de Celulares">Técnico en Reparación de Celulares</option>
+          <option value="Especialista en Pantallas">Especialista en Pantallas</option>
+          <option value="Técnico en Software">Técnico en Software</option>
+          <option value="Especialista en Placas">Especialista en Placas</option>
+          <option value="Técnico en Baterías">Técnico en Baterías</option>
+          <option value="Vendedor">Vendedor</option>
+          <option value="Atención al Cliente">Atención al Cliente</option>
+          <option value="Administrador">Administrador</option>
+          <option value="Gerente">Gerente</option>
+          <option value="Supervisor">Supervisor</option>
+          <option value="Recepcionista">Recepcionista</option>
+          <option value="Contador">Contador</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="empleado_salario" class="form-label">Salario <span class="text-danger">*</span></label>
+        <div class="input-group">
+          <span class="input-group-text">Q.</span>
+          <input type="number" class="form-control" id="empleado_salario" name="empleado_salario" required step="0.01" min="0" placeholder="3000.00">
+        </div>
+      </div>
     </div>
 
+    <!-- BOTONES -->
     <div class="row justify-content-center mt-4 g-2">
       <div class="col-auto">
         <button type="submit" class="btn btn-success px-4" id="BtnGuardar">
@@ -142,17 +106,16 @@
 <!-- Tabla de empleados -->
 <div class="container mt-5">
   <div class="row justify-content-center">
-    <div class="col-lg-12">
+    <div class="col-lg-11">
       <div class="card shadow border-primary border-2 rounded-4">
         <div class="card-header bg-primary text-white rounded-top-4">
           <h4 class="text-center mb-0">
-            <i class="bi bi-table me-2"></i> Empleados Registrados
+            <i class="bi bi-people-fill me-2"></i> Empleados Registrados en la Base de Datos
           </h4>
         </div>
         <div class="card-body p-4">
           <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered w-100 table-sm" id="TableEmpleados">
-            </table>
+            <table class="table table-striped table-hover table-bordered w-100 table-sm" id="TablaEmpleados"></table>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 // empleado/index.js
-import Swal from "sweetalert2";
 import DataTable from "datatables.net-bs5";
-import { validarFormulario } from "../funciones";
+import { validarFormulario } from '../funciones';
+import Swal from "sweetalert2";
 import { lenguaje } from "../lenguaje";
 
 // Elementos del DOM
@@ -9,373 +9,419 @@ const FormularioEmpleados = document.getElementById('FormularioEmpleados');
 const BtnGuardar = document.getElementById('BtnGuardar');
 const BtnModificar = document.getElementById('BtnModificar');
 const BtnLimpiar = document.getElementById('BtnLimpiar');
-const empleado_nombres = document.getElementById('empleado_nombres');
-const empleado_apellidos = document.getElementById('empleado_apellidos');
+const empleado_tel = document.getElementById('empleado_tel');
 const empleado_dpi = document.getElementById('empleado_dpi');
-const empleado_correo = document.getElementById('empleado_correo');
 
-// Validar Nombres
-const ValidarNombres = () => {
-    const nombres = empleado_nombres.value.trim();
-    if (nombres.length >= 2) {
-        empleado_nombres.classList.add('is-valid');
-        empleado_nombres.classList.remove('is-invalid');
-    } else if (nombres.length > 0) {
-        empleado_nombres.classList.add('is-invalid');
-        empleado_nombres.classList.remove('is-valid');
-        Swal.fire({ 
-            icon: "error", 
-            title: "Nombres inválidos", 
-            text: "Los nombres deben tener al menos 2 caracteres" 
-        });
+let empleadoEditando = null;
+let datatable = null;
+
+// Validar Teléfono - Mejorado
+const ValidarTelefono = () => {
+    const numero = empleado_tel.value.trim();
+    
+    if (numero.length < 1) {
+        empleado_tel.classList.remove('is-valid', 'is-invalid');
+        return true;
     } else {
-        empleado_nombres.classList.remove('is-valid', 'is-invalid');
+        if (numero.length !== 8) {
+            empleado_tel.classList.add('is-invalid');
+            empleado_tel.classList.remove('is-valid');
+            Swal.fire({
+                position: "center",
+                icon: "warning",
+                title: "Teléfono incorrecto",
+                text: "Debe tener exactamente 8 dígitos",
+                showConfirmButton: true,
+            });
+            return false;
+        } else {
+            empleado_tel.classList.remove('is-invalid');
+            empleado_tel.classList.add('is-valid');
+            return true;
+        }
     }
 };
 
-// Validar Apellidos
-const ValidarApellidos = () => {
-    const apellidos = empleado_apellidos.value.trim();
-    if (apellidos.length >= 2) {
-        empleado_apellidos.classList.add('is-valid');
-        empleado_apellidos.classList.remove('is-invalid');
-    } else if (apellidos.length > 0) {
-        empleado_apellidos.classList.add('is-invalid');
-        empleado_apellidos.classList.remove('is-valid');
-        Swal.fire({ 
-            icon: "error", 
-            title: "Apellidos inválidos", 
-            text: "Los apellidos deben tener al menos 2 caracteres" 
-        });
-    } else {
-        empleado_apellidos.classList.remove('is-valid', 'is-invalid');
-    }
-};
-
-// Validar DPI
+// Validar DPI - Mejorado
 const ValidarDPI = () => {
-    const dpi = empleado_dpi.value.trim();
+    const numeroDPI = empleado_dpi.value.trim();
     
-    if (dpi.length === 0) {
+    if (numeroDPI.length < 1) {
         empleado_dpi.classList.remove('is-valid', 'is-invalid');
-        return;
-    }
-    
-    if (!/^\d+$/.test(dpi)) {
-        empleado_dpi.classList.add('is-invalid');
-        empleado_dpi.classList.remove('is-valid');
-        Swal.fire({ 
-            icon: "error", 
-            title: "DPI inválido", 
-            text: "El DPI debe contener solo números" 
-        });
-        return;
-    }
-    
-    if (dpi.length === 13) {
-        empleado_dpi.classList.add('is-valid');
-        empleado_dpi.classList.remove('is-invalid');
+        return true;
     } else {
-        empleado_dpi.classList.add('is-invalid');
-        empleado_dpi.classList.remove('is-valid');
-        Swal.fire({ 
-            icon: "error", 
-            title: "DPI inválido", 
-            text: "El DPI debe tener exactamente 13 dígitos" 
-        });
+        if (!/^\d+$/.test(numeroDPI)) {
+            empleado_dpi.classList.add('is-invalid');
+            empleado_dpi.classList.remove('is-valid');
+            Swal.fire({ 
+                icon: "error", 
+                title: "DPI inválido", 
+                text: "El DPI debe contener solo números" 
+            });
+            return false;
+        }
+        
+        if (numeroDPI.length !== 13) {
+            empleado_dpi.classList.add('is-invalid');
+            empleado_dpi.classList.remove('is-valid');
+            
+            if (numeroDPI.length < 13) {
+                Swal.fire({ 
+                    icon: "error", 
+                    title: "DPI inválido", 
+                    text: `Debe contener exactamente 13 dígitos. Faltan ${13 - numeroDPI.length} dígitos.` 
+                });
+            } else {
+                Swal.fire({ 
+                    icon: "error", 
+                    title: "DPI inválido", 
+                    text: `Debe contener exactamente 13 dígitos. Sobran ${numeroDPI.length - 13} dígitos.` 
+                });
+            }
+            return false;
+        } else {
+            empleado_dpi.classList.remove('is-invalid');
+            empleado_dpi.classList.add('is-valid');
+            return true;
+        }
     }
 };
 
-// Validar Correo
-const ValidarCorreo = () => {
-    const correo = empleado_correo.value.trim();
+
+// Limpiar formulario - Mejorado
+const limpiarTodo = () => {
+    FormularioEmpleados.reset();
+    empleadoEditando = null;
+    BtnGuardar.textContent = 'Guardar';
+    BtnGuardar.className = 'btn btn-success px-4';
+    BtnGuardar.classList.remove('d-none');
+    BtnModificar.classList.add('d-none');
     
-    if (correo.length === 0) {
-        empleado_correo.classList.remove('is-valid', 'is-invalid');
-        return;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailRegex.test(correo)) {
-        empleado_correo.classList.add('is-valid');
-        empleado_correo.classList.remove('is-invalid');
-    } else {
-        empleado_correo.classList.add('is-invalid');
-        empleado_correo.classList.remove('is-valid');
-        Swal.fire({ 
-            icon: "error", 
-            title: "Correo inválido", 
-            text: "Ingrese un correo electrónico válido" 
-        });
-    }
+    FormularioEmpleados.querySelectorAll('.form-control, .form-select').forEach(element => {
+        element.classList.remove('is-valid', 'is-invalid');
+        element.title = '';
+    });
 };
 
-// Guardar Empleado
+// Guardar/Modificar Empleado - Mejorado
 const GuardarEmpleado = async (event) => {
     event.preventDefault();
     BtnGuardar.disabled = true;
 
-    if (!validarFormulario(FormularioEmpleados, ['empleado_id'])) {
-        Swal.fire({ 
-            icon: "info", 
-            title: "Formulario incompleto", 
-            text: "Debe completar todos los campos requeridos" 
-        });
-        BtnGuardar.disabled = false;
-        return;
-    }
+    // Validar formulario y campos específicos
+    const telefonoValido = ValidarTelefono();
+    const dpiValido = ValidarDPI();
 
-    if (empleado_nombres.classList.contains('is-invalid') || 
-        empleado_apellidos.classList.contains('is-invalid') ||
-        empleado_dpi.classList.contains('is-invalid') ||
-        empleado_correo.classList.contains('is-invalid')) {
-        Swal.fire({ 
-            icon: "error", 
-            title: "Datos inválidos", 
-            text: "Debe corregir los campos marcados antes de continuar" 
+    if (!validarFormulario(FormularioEmpleados, ['empleado_id']) || !telefonoValido || !dpiValido) {
+        Swal.fire({
+            position: "center",
+            icon: "info",
+            title: "FORMULARIO INCOMPLETO",
+            text: "Verifique todos los campos",
+            showConfirmButton: true,
         });
         BtnGuardar.disabled = false;
         return;
     }
 
     const body = new FormData(FormularioEmpleados);
-    const url = '/empresa_celulares/empleado/guardarAPI';
+    let url = '/montoya_final_dotacion_ingsoft/empleado/guardarAPI';
+    
+    if (empleadoEditando) {
+        url = '/montoya_final_dotacion_ingsoft/empleado/modificarAPI';
+        body.append('empleado_id', empleadoEditando);
+    }
+
+    const config = {
+        method: 'POST',
+        body
+    };
 
     try {
-        const respuesta = await fetch(url, { method: 'POST', body });
-        const { codigo, mensaje } = await respuesta.json();
+        const respuesta = await fetch(url, config);
+        const datos = await respuesta.json();
+        const { codigo, mensaje } = datos;
+
         if (codigo == 1) {
-            Swal.fire({ 
-                icon: "success", 
-                title: "Empleado registrado", 
-                text: mensaje 
+            await Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "¡Éxito!",
+                text: mensaje,
+                showConfirmButton: true,
             });
+
             limpiarTodo();
-            BuscarEmpleados();
+            await BuscarEmpleados();
+
         } else {
-            Swal.fire({ 
-                icon: "info", 
-                title: "Error", 
-                text: mensaje 
+            await Swal.fire({
+                position: "center",
+                icon: "info",
+                title: "Error",
+                text: mensaje,
+                showConfirmButton: true,
             });
         }
+
     } catch (error) {
-        console.error(error);
-        Swal.fire({ 
-            icon: "error", 
-            title: "Error", 
-            text: "Ocurrió un error al procesar la solicitud" 
+        console.log(error);
+        await Swal.fire({
+            position: "center",
+            icon: "error",
+            title: "Error de conexión",
+            text: "No se pudo completar la operación",
+            showConfirmButton: true,
         });
     }
     BtnGuardar.disabled = false;
 };
 
-// Buscar Empleados
+// Buscar Empleados - Mejorado
 const BuscarEmpleados = async () => {
-    const url = '/empresa_celulares/empleado/buscarAPI';
+    const url = '/montoya_final_dotacion_ingsoft/empleado/buscarAPI';
+    const config = {
+        method: 'GET'
+    };
+
     try {
-        const res = await fetch(url);
-        const { codigo, mensaje, data } = await res.json();
+        const respuesta = await fetch(url, config);
+        const datos = await respuesta.json();
+        const { codigo, mensaje, data } = datos;
+
         if (codigo == 1) {
+            await Swal.fire({
+                position: "center",
+                icon: "success",
+                title: "¡Empleados cargados!",
+                text: `Se cargaron ${data.length} empleado(s) correctamente`,
+                showConfirmButton: true,
+                timer: 2000
+            });
+
             datatable.clear().draw();
             datatable.rows.add(data).draw();
         } else {
-            Swal.fire({ 
-                icon: "info", 
-                title: "Error", 
-                text: mensaje 
+            await Swal.fire({
+                position: "center",
+                icon: "info",
+                title: "Sin datos",
+                text: mensaje,
+                showConfirmButton: true,
             });
         }
+
     } catch (error) {
-        console.error(error);
-        Swal.fire({ 
-            icon: "error", 
-            title: "Error", 
-            text: "Error al cargar los empleados" 
+        console.log('Error en BuscarEmpleados:', error);
+        await Swal.fire({
+            position: "center",
+            icon: "error",
+            title: "Error de conexión",
+            text: "No se pudieron cargar los empleados",
+            showConfirmButton: true,
         });
     }
 };
 
-// DataTable Configuración
-const datatable = new DataTable('#TableEmpleados', {
+// Llenar formulario para editar - Mejorado
+const llenarFormulario = (e) => {
+    try {
+        const datos = JSON.parse(e.currentTarget.dataset.json);
+        
+        document.getElementById('empleado_nom1').value = datos.empleado_nom1 || '';
+        document.getElementById('empleado_nom2').value = datos.empleado_nom2 || '';
+        document.getElementById('empleado_ape1').value = datos.empleado_ape1 || '';
+        document.getElementById('empleado_ape2').value = datos.empleado_ape2 || '';
+        document.getElementById('empleado_tel').value = datos.empleado_tel || '';
+        document.getElementById('empleado_dpi').value = datos.empleado_dpi || '';
+        document.getElementById('empleado_correo').value = datos.empleado_correo || '';
+        document.getElementById('empleado_especialidad').value = datos.empleado_especialidad || '';
+        document.getElementById('empleado_salario').value = datos.empleado_salario || '';
+
+        empleadoEditando = datos.empleado_id;
+        BtnGuardar.textContent = 'Actualizar Empleado';
+        BtnGuardar.className = 'btn btn-warning px-4';
+        BtnGuardar.classList.remove('d-none');
+        BtnModificar.classList.add('d-none');
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+        console.error('Error parsing JSON:', error);
+        Swal.fire({ icon: "error", title: "Error", text: "Error al cargar los datos del empleado" });
+    }
+};
+
+// Eliminar empleado - Mejorado
+const EliminarEmpleado = async (e) => {
+    const idEmpleado = e.currentTarget.dataset.id;
+
+    const AlertaConfirmarEliminar = await Swal.fire({
+        position: "center",
+        icon: "question",
+        title: "¿Desea ejecutar esta acción?",
+        text: 'Está completamente seguro que desea eliminar este empleado',
+        showConfirmButton: true,
+        confirmButtonText: 'Sí, Eliminar',
+        confirmButtonColor: '#d33',
+        cancelButtonText: 'No, Cancelar',
+        showCancelButton: true
+    });
+
+    if (AlertaConfirmarEliminar.isConfirmed) {
+        const url = `/montoya_final_dotacion_ingsoft/empleado/eliminar?id=${idEmpleado}`;
+        const config = {
+            method: 'GET'
+        };
+
+        try {
+            const consulta = await fetch(url, config);
+            const respuesta = await consulta.json();
+            const { codigo, mensaje } = respuesta;
+
+            if (codigo == 1) {
+                await Swal.fire({
+                    position: "center",
+                    icon: "success",
+                    title: "¡Éxito!",
+                    text: mensaje,
+                    showConfirmButton: true,
+                });
+                
+                await BuscarEmpleados();
+            } else {
+                await Swal.fire({
+                    position: "center",
+                    icon: "error",
+                    title: "Error",
+                    text: mensaje,
+                    showConfirmButton: true,
+                });
+            }
+
+        } catch (error) {
+            console.log(error);
+            await Swal.fire({
+                position: "center",
+                icon: "error",
+                title: "Error de conexión",
+                text: "No se pudo completar la eliminación",
+                showConfirmButton: true,
+            });
+        }
+    }
+};
+
+// Configurar DataTable - Mejorado
+datatable = new DataTable('#TablaEmpleados', {
+    dom: `
+        <"row mt-3 justify-content-between" 
+            <"col" l> 
+            <"col" B> 
+            <"col-3" f>
+        >
+        t
+        <"row mt-3 justify-content-between" 
+            <"col-md-3 d-flex align-items-center" i> 
+            <"col-md-8 d-flex justify-content-end" p>
+        >
+    `,
     language: lenguaje,
     data: [],
     columns: [
         { 
             title: "No.", 
-            data: "empleado_id", 
-            render: (data, type, row, meta) => meta.row + 1 
+            data: null,
+            render: (data, type, row, meta) => meta.row + 1,
+            width: '5%'
         },
         { 
             title: "Nombre Completo", 
-            data: null,
-            render: (data, type, row) => `${row.empleado_nombres} ${row.empleado_apellidos}`
+            data: null, 
+            render: (data, type, row) => {
+                const nom1 = row.empleado_nom1 || '';
+                const nom2 = row.empleado_nom2 || '';
+                const ape1 = row.empleado_ape1 || '';
+                const ape2 = row.empleado_ape2 || '';
+                return `${nom1} ${nom2} ${ape1} ${ape2}`.trim();
+            },
+            width: '15%'
         },
         { 
             title: "DPI", 
-            data: "empleado_dpi" 
-        },
-        { 
-            title: "Puesto", 
-            data: "empleado_puesto" 
-        },
-        { 
-            title: "Departamento", 
-            data: "empleado_departamento" 
+            data: "empleado_dpi",
+            width: '10%'
         },
         { 
             title: "Teléfono", 
-            data: "empleado_telefono" 
+            data: "empleado_tel",
+            width: '8%'
         },
         { 
             title: "Correo", 
-            data: "empleado_correo" 
+            data: "empleado_correo",
+            width: '15%'
+        },
+        { 
+            title: "Especialidad", 
+            data: "empleado_especialidad",
+            width: '12%'
+        },
+        { 
+            title: "Salario", 
+            data: "empleado_salario",
+            render: (data) => `Q. ${parseFloat(data || 0).toLocaleString('es-GT', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+            className: 'text-end',
+            width: '10%'
+        },
+        { 
+            title: "Fecha Contratación", 
+            data: "empleado_fecha_contratacion",
+            render: (data) => data ? new Date(data).toLocaleDateString('es-GT') : 'N/A',
+            className: 'text-center',
+            width: '10%'
         },
         {
             title: "Acciones", 
             data: "empleado_id",
             render: (id, type, row) => `
-                <div class="d-flex justify-content-center gap-1">
-                    <button class="btn btn-warning btn-sm modificar" 
-                            data-id="${id}" 
-                            data-json='${JSON.stringify(row)}'
-                            title="Modificar">
-                        ✏️
+                <div class='d-flex justify-content-center'>
+                    <button class='btn btn-warning modificar mx-1' 
+                        data-id="${id}" 
+                        data-json='${JSON.stringify(row)}'
+                        title="Modificar">   
+                        <i class='bi bi-pencil-square me-1'></i> Modificar
                     </button>
-                    <button class="btn btn-danger btn-sm eliminar" 
-                            data-id="${id}"
-                            title="Eliminar">
-                        🗑️
+                    <button class='btn btn-danger eliminar mx-1' 
+                        data-id="${id}"
+                        title="Eliminar">
+                       <i class="bi bi-trash3 me-1"></i>Eliminar
                     </button>
                 </div>
-            `
+            `,
+            orderable: false,
+            searchable: false,
+            className: 'text-center',
+            width: '12%'
         }
     ]
 });
 
-// Llenar formulario para modificar
-const llenarFormulario = (e) => {
-    const datos = JSON.parse(e.currentTarget.dataset.json);
-    for (let key in datos) {
-        const input = document.getElementById(key);
-        if (input) input.value = datos[key];
-    }
-    BtnGuardar.classList.add('d-none');
-    BtnModificar.classList.remove('d-none');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-// Limpiar todo el formulario
-const limpiarTodo = () => {
-    FormularioEmpleados.reset();
-    BtnGuardar.classList.remove('d-none');
-    BtnModificar.classList.add('d-none');
-    FormularioEmpleados.querySelectorAll('.is-valid, .is-invalid').forEach(el => {
-        el.classList.remove('is-valid', 'is-invalid');
-    });
-};
-
-// Modificar Empleado
-const ModificarEmpleado = async (event) => {
-    event.preventDefault();
-    BtnModificar.disabled = true;
-
-    if (!validarFormulario(FormularioEmpleados, ['empleado_id'])) {
-        Swal.fire({ 
-            icon: "info", 
-            title: "Formulario incompleto", 
-            text: "Complete todos los campos" 
-        });
-        BtnModificar.disabled = false;
-        return;
-    }
-
-    const body = new FormData(FormularioEmpleados);
-    const url = '/empresa_celulares/empleado/modificarAPI';
-
-    try {
-        const respuesta = await fetch(url, { method: 'POST', body });
-        const { codigo, mensaje } = await respuesta.json();
-        if (codigo == 1) {
-            Swal.fire({ 
-                icon: "success", 
-                title: "Empleado modificado", 
-                text: mensaje 
-            });
-            limpiarTodo();
-            BuscarEmpleados();
-        } else {
-            Swal.fire({ 
-                icon: "error", 
-                title: "Error", 
-                text: mensaje 
-            });
-        }
-    } catch (error) {
-        console.error(error);
-        Swal.fire({ 
-            icon: "error", 
-            title: "Error", 
-            text: "Ocurrió un error al procesar la solicitud" 
-        });
-    }
-    BtnModificar.disabled = false;
-};
-
-// Eliminar Empleado
-const EliminarEmpleado = async (e) => {
-    const id = e.currentTarget.dataset.id;
-    const confirmar = await Swal.fire({
-        icon: "warning", 
-        title: "¿Eliminar empleado?", 
-        text: "Esta acción no se puede deshacer.",
-        showCancelButton: true, 
-        confirmButtonText: "Sí, eliminar", 
-        cancelButtonText: "Cancelar",
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#6c757d"
-    });
-
-    if (confirmar.isConfirmed) {
-        const url = `/empresa_celulares/empleado/eliminar?id=${id}`;
-        try {
-            const res = await fetch(url);
-            const { codigo, mensaje } = await res.json();
-            if (codigo == 1) {
-                Swal.fire({ 
-                    icon: "success", 
-                    title: "Eliminado", 
-                    text: mensaje 
-                });
-                BuscarEmpleados();
-            } else {
-                Swal.fire({ 
-                    icon: "error", 
-                    title: "Error", 
-                    text: mensaje 
-                });
-            }
-        } catch (error) {
-            console.error(error);
-            Swal.fire({ 
-                icon: "error", 
-                title: "Error", 
-                text: "Error al eliminar el empleado" 
-            });
-        }
-    }
-};
-
-// Eventos del DOM
+// Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+    // Cargar datos iniciales
     BuscarEmpleados();
-    empleado_nombres.addEventListener('change', ValidarNombres);
-    empleado_apellidos.addEventListener('change', ValidarApellidos);
-    empleado_dpi.addEventListener('change', ValidarDPI);
-    empleado_correo.addEventListener('change', ValidarCorreo);
-    FormularioEmpleados.addEventListener('submit', GuardarEmpleado);
-    BtnModificar.addEventListener('click', ModificarEmpleado);
-    BtnLimpiar.addEventListener('click', limpiarTodo);
+    
+    // Validaciones en tiempo real
+    if (empleado_tel) empleado_tel.addEventListener('change', ValidarTelefono);
+    if (empleado_dpi) empleado_dpi.addEventListener('change', ValidarDPI);
+    
+    // Eventos de formulario
+    if (FormularioEmpleados) FormularioEmpleados.addEventListener('submit', GuardarEmpleado);
+    if (BtnLimpiar) BtnLimpiar.addEventListener('click', limpiarTodo);
+    
+    // Eventos de DataTable
     datatable.on('click', '.modificar', llenarFormulario);
     datatable.on('click', '.eliminar', EliminarEmpleado);
+    
+    console.log('Aplicación de empleados inicializada correctamente');
 });
