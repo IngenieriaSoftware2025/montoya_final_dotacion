@@ -84,7 +84,7 @@ class AplicacionController extends ActiveRecord
     public static function buscarAPI()
     {
         try {
-            $aplicaciones = self::fetchArray("SELECT * FROM aplicacion WHERE app_situacion = 1 ORDER BY app_nombre_corto");
+            $aplicaciones = self::fetchArray("SELECT * FROM mrml_aplicacion WHERE app_situacion = 1 ORDER BY app_nombre_corto");
         
             if (!is_array($aplicaciones)) { $aplicaciones = []; }
 
