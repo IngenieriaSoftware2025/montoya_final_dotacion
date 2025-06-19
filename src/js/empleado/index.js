@@ -311,7 +311,7 @@ const EliminarEmpleado = async (e) => {
     }
 };
 
-// Configurar DataTable - Mejorado
+
 datatable = new DataTable('#TablaEmpleados', {
     dom: `
         <"row mt-3 justify-content-between" 

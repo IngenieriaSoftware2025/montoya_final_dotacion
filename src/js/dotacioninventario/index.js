@@ -168,7 +168,6 @@ const GuardarInventario = async (event) => {
 
 // Buscar Inventario
 const BuscarInventario = async () => {
-    // URL CORREGIDA
     const url = '/montoya_final_dotacion_ingsoft/dotacioninventario/buscarAPI';
     try {
         const res = await fetch(url);
@@ -323,7 +322,6 @@ const ModificarInventario = async (event) => {
     }
 
     const body = new FormData(FormularioDotaciones);
-    // URL CORREGIDA
     const url = '/montoya_final_dotacion_ingsoft/dotacioninventario/modificarAPI';
 
     try {
@@ -370,7 +368,7 @@ const EliminarInventario = async (e) => {
     });
 
     if (confirmar.isConfirmed) {
-        // URL CORREGIDA
+   
         const url = `/montoya_final_dotacion_ingsoft/dotacioninventario/eliminar?id=${id}`;
         try {
             const res = await fetch(url);
