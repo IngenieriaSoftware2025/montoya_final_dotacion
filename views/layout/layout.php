@@ -416,7 +416,6 @@
         <div class="collapse navbar-collapse" id="navbarContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 
-            <?php if (isset($_SESSION['Admin']) || isset($_SESSION['Admin'])): ?>
                 
                     <!-- Catálogos Base -->
                 <li class="nav-item dropdown">
@@ -548,7 +547,7 @@
                     </li>
                 
             </ul>
-<?php endif; ?>
+
             <!-- Botón menú -->
            <a href="/montoya_final_dotacion_ingsoft/logout" class="btn btn-menu">
                 <i class="bi bi-box-arrow-right me-2"></i>

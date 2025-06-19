@@ -25,7 +25,7 @@ class DotacionSolicitudController extends ActiveRecord
         try {
             $sql = "SELECT ds.*, e.empleado_nombres, e.empleado_apellidos, e.empleado_puesto
                     FROM mrml_dotacion_solicitud ds
-                    JOIN mrml_empleado e ON ds.empleado_id = e.empleado_id
+                    JOIN mrml_empleados e ON ds.empleado_id = e.empleado_id
                     WHERE ds.solicitud_situacion = 1 
                     ORDER BY ds.solicitud_fecha DESC";
             $data = self::fetchArray($sql);

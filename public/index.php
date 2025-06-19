@@ -4,90 +4,94 @@ require_once __DIR__ . '/../includes/app.php';
 use Controllers\AplicacionController;
 use MVC\Router;
 use Controllers\AppController;
-use Controllers\AsignacionPermisoController;
 use Controllers\DotacionInventarioController;
 use Controllers\EmpleadoController;
 use Controllers\LoginController;
-use Controllers\PermisoController;
-use Controllers\TallaController;
 use Controllers\TipoDotacionController;
+use Controllers\TallaController; 
 use Controllers\UsuarioController;
-
+use Controllers\DotacionSolicitudController;
+use Controllers\DotacionEntregaController;
 
 $router = new Router();
 $router->setBaseURL('/' . $_ENV['APP_NAME']);
 
-// ===== RUTAS PRINCIPALES =====
-$router->get('/', [AppController::class, 'index']);
+$router->get('/', [AppController::class,'index']);
 
-// ===== AUTENTICACIÓN =====
-$router->get('/login', [LoginController::class, 'renderizarPagina']);
-$router->post('/login/iniciar', [LoginController::class, 'login']);
-$router->get('/logout', [LoginController::class, 'logout']);
+$router->get('/login', [LoginController::class,'renderizarPagina']);
+$router->post('/login/iniciar', [LoginController::class,'login']);
+$router->get('/logout', [LoginController::class,'logout']);
 
-// ===== CATÁLOGOS BASE =====
-
-// Tipos de Dotación
+// RUTAS TIPO DOTACIÓN
 $router->get('/tipodotacion', [TipoDotacionController::class, 'renderizarPagina']);
 $router->post('/tipodotacion/guardarAPI', [TipoDotacionController::class, 'guardarAPI']);
 $router->get('/tipodotacion/buscarAPI', [TipoDotacionController::class, 'buscarAPI']);
 $router->post('/tipodotacion/modificarAPI', [TipoDotacionController::class, 'modificarAPI']);
 $router->get('/tipodotacion/eliminar', [TipoDotacionController::class, 'eliminarAPI']);
 
-// Tallas
+// RUTAS TALLA - AGREGAR ESTAS RUTAS QUE FALTAN
 $router->get('/talla', [TallaController::class, 'renderizarPagina']);
-$router->get('/talla/buscarAPI', [TallaController::class, 'buscarAPI']);
-$router->get('/talla/buscarPorTipoAPI', [TallaController::class, 'buscarPorTipoAPI']);
 $router->post('/talla/guardarAPI', [TallaController::class, 'guardarAPI']);
+$router->get('/talla/buscarAPI', [TallaController::class, 'buscarAPI']);
+$router->get('/talla/buscarPorTipoAPI', [TallaController::class, 'buscarPorTipoAPI']); // ESTA RUTA FALTABA!
 $router->post('/talla/modificarAPI', [TallaController::class, 'modificarAPI']);
 $router->get('/talla/eliminar', [TallaController::class, 'eliminarAPI']);
 
-
-
-// Empleados
-$router->get('/empleado', [EmpleadoController::class, 'renderizarPagina']);
-$router->get('/empleado/buscarAPI', [EmpleadoController::class, 'buscarAPI']);
-$router->post('/empleado/guardarAPI', [EmpleadoController::class, 'guardarAPI']);
-$router->post('/empleado/modificarAPI', [EmpleadoController::class, 'modificarAPI']);
-$router->get('/empleado/eliminar', [EmpleadoController::class, 'eliminarAPI']);
-
-
-// Usuarios
+// RUTAS USUARIO
 $router->get('/usuario', [UsuarioController::class, 'renderizarPagina']);
 $router->post('/usuario/guardarAPI', [UsuarioController::class, 'guardarAPI']);
 $router->get('/usuario/buscarAPI', [UsuarioController::class, 'buscarAPI']);
 $router->post('/usuario/modificarAPI', [UsuarioController::class, 'modificarAPI']);
 $router->get('/usuario/eliminar', [UsuarioController::class, 'eliminarAPI']);
 
-// ===== INVENTARIO =====
-
-// Inventario de Dotaciones
-$router->get('/dotacioninventario', [DotacionInventarioController::class, 'renderizarPagina']);
-$router->get('/dotacioninventario/buscarAPI', [DotacionInventarioController::class, 'buscarAPI']);
-$router->post('/dotacioninventario/guardarAPI', [DotacionInventarioController::class, 'guardarAPI']);
-$router->post('/dotacioninventario/modificarAPI', [DotacionInventarioController::class, 'modificarAPI']);
-$router->get('/dotacioninventario/eliminar', [DotacionInventarioController::class, 'eliminarAPI']);
-$router->get('/dotacioninventario/buscarDisponibleAPI', [DotacionInventarioController::class, 'buscarDisponibleAPI']);
-
-
-// ===== APLICACIONES (PARA PERMISOS) =====
+// RUTAS APLICACIÓN
 $router->get('/aplicacion', [AplicacionController::class, 'renderizarPagina']);
 $router->post('/aplicacion/guardarAPI', [AplicacionController::class, 'guardarAPI']);
 $router->get('/aplicacion/buscarAPI', [AplicacionController::class, 'buscarAPI']);
-$router->post('/aplicacion/modificarAPI', [AplicacionController::class, 'modificarAPI']);
-$router->get('/aplicacion/eliminar', [AplicacionController::class, 'eliminarAPI']); 
+$router->post('/aplicacion/modificarAPI', [AplicacionController::class, 'modificarAPI']); // FALTABA ESTA
+$router->get('/aplicacion/eliminar', [AplicacionController::class, 'eliminarAPI']);
 
-$router->get('/permiso', [PermisoController::class, 'renderizarPagina']);
-$router->post('/permiso/guardarAPI', [permisoController::class, 'guardarAPI']);
-$router->get('/permiso/buscarAPI', [permisoController::class, 'buscarAPI']);
-$router->post('/permiso/eliminarAPI', [permisoController::class, 'eliminarAPI']);
-$router->post('/permiso/cambiarEstadoAPI', [permisoController::class, 'cambiarEstadoAPI']);
+// RUTAS EMPLEADO
+$router->get('/empleado', [EmpleadoController::class, 'renderizarPagina']);
+$router->get('/empleado/buscarAPI', [EmpleadoController::class, 'buscarAPI']);
+$router->post('/empleado/guardarAPI', [EmpleadoController::class, 'guardarAPI']);
+$router->post('/empleado/modificarAPI', [EmpleadoController::class, 'modificarAPI']);
+$router->get('/empleado/eliminar', [EmpleadoController::class, 'eliminarAPI']);
 
-$router->get('/asignacion_permiso', [AsignacionPermisoController::class, 'renderizarPagina']);
-$router->post('/asignacion_permiso/guardarAPI', [AsignacionPermisoController::class, 'guardarAPI']);
-$router->get('/asignacion_permiso/buscarAPI', [AsignacionPermisoController::class, 'buscarAPI']);
-$router->post('/asignacion_permiso/modificarAPI', [AsignacionPermisoController::class, 'modificarAPI']);
-$router->get('/asignacion_permiso/eliminar', [AsignacionPermisoController::class, 'eliminarAPI']);
+// RUTAS DOTACIÓN INVENTARIO
+$router->get('/dotacioninventario', [DotacionInventarioController::class, 'renderizarPagina']);
+$router->get('/dotacioninventario/buscarAPI', [DotacionInventarioController::class, 'buscarAPI']);
+$router->get('/dotacioninventario/buscarDisponibleAPI', [DotacionInventarioController::class, 'buscarDisponibleAPI']); // NUEVA
+$router->post('/dotacioninventario/guardarAPI', [DotacionInventarioController::class, 'guardarAPI']);
+$router->post('/dotacioninventario/modificarAPI', [DotacionInventarioController::class, 'modificarAPI']);
+$router->get('/dotacioninventario/eliminar', [DotacionInventarioController::class, 'eliminarAPI']);
+
+// RUTAS DOTACIÓN SOLICITUD
+$router->get('/dotacionsolicitud', [DotacionSolicitudController::class, 'renderizarPagina']);
+$router->get('/dotacionsolicitud/buscarAPI', [DotacionSolicitudController::class, 'buscarAPI']);
+$router->post('/dotacionsolicitud/guardarAPI', [DotacionSolicitudController::class, 'guardarAPI']);
+$router->post('/dotacionsolicitud/aprobarAPI', [DotacionSolicitudController::class, 'aprobarAPI']);
+$router->post('/dotacionsolicitud/rechazarAPI', [DotacionSolicitudController::class, 'rechazarAPI']);
+$router->get('/dotacionsolicitud/eliminar', [DotacionSolicitudController::class, 'eliminarAPI']);
+
+// Agregar estas rutas adicionales a tu index.php:
+
+
+
+// RUTAS DOTACIÓN SOLICITUD
+$router->get('/dotacionsolicitud', [DotacionSolicitudController::class, 'renderizarPagina']);
+$router->get('/dotacionsolicitud/buscarAPI', [DotacionSolicitudController::class, 'buscarAPI']);
+$router->post('/dotacionsolicitud/guardarAPI', [DotacionSolicitudController::class, 'guardarAPI']);
+$router->post('/dotacionsolicitud/aprobarAPI', [DotacionSolicitudController::class, 'aprobarAPI']);
+$router->post('/dotacionsolicitud/rechazarAPI', [DotacionSolicitudController::class, 'rechazarAPI']);
+$router->get('/dotacionsolicitud/eliminar', [DotacionSolicitudController::class, 'eliminarAPI']);
+
+// RUTAS DOTACIÓN ENTREGA
+$router->get('/dotacionentrega', [DotacionEntregaController::class, 'renderizarPagina']);
+$router->get('/dotacionentrega/buscarAPI', [DotacionEntregaController::class, 'buscarAPI']);
+$router->post('/dotacionentrega/guardarAPI', [DotacionEntregaController::class, 'guardarAPI']);
+$router->get('/dotacionentrega/verificarLimiteAPI', [DotacionEntregaController::class, 'verificarLimiteAPI']);
+$router->get('/dotacionentrega/eliminar', [DotacionEntregaController::class, 'eliminarAPI']);
 
 // Comprueba y valida las rutas, que existan y les asigna las funciones del Controlador
 $router->comprobarRutas();

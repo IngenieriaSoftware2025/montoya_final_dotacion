@@ -15,6 +15,9 @@ module.exports = {
     'js/dotacioninventario/index' : './src/js/dotacioninventario/index.js',
     'js/asignacion_permiso/index' : './src/js/asignacion_permiso/index.js',
     'js/dashboard/index' : './src/js/dashboard/index.js',
+    'js/dashboard/index' : './src/js/dashboard/index.js',
+    'js/dotacionsolicitud/index' : './src/js/dotacionsolicitud/index.js',
+    'js/dotacionentrega/index' : './src/js/dotacionentrega/index.js',
   },
   output: {
     filename: '[name].js',

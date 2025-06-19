@@ -40,6 +40,7 @@ class TallaController extends ActiveRecord
         }
     }
 
+    // MÉTODO QUE FALTABA - AGREGAR ESTE
     public static function buscarPorTipoAPI()
     {
         $tipo = $_GET['tipo'] ?? '';
@@ -60,7 +61,8 @@ class TallaController extends ActiveRecord
             ]);
 
         } catch (Exception $e) {
-            http_response_code(400);
+            error_log("Error en buscarPorTipoAPI: " . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'codigo' => 0,
                 'mensaje' => 'Error al obtener las tallas',
@@ -80,12 +82,6 @@ class TallaController extends ActiveRecord
             return;
         }
 
-        if (empty($_POST['talla_descripcion'])) {
-            http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'La descripción de la talla es obligatoria']);
-            return;
-        }
-
         if (empty($_POST['talla_tipo'])) {
             http_response_code(400);
             echo json_encode(['codigo' => 0, 'mensaje' => 'El tipo de talla es obligatorio']);
@@ -99,26 +95,14 @@ class TallaController extends ActiveRecord
         }
 
         try {
-            // Verificar si ya existe la combinación nombre + tipo
-            $existe = self::fetchArray("SELECT COUNT(*) as count FROM mrml_talla 
-                                       WHERE talla_nombre = '" . trim($_POST['talla_nombre']) . "' 
-                                       AND talla_tipo = '" . trim($_POST['talla_tipo']) . "' 
-                                       AND talla_situacion = 1");
-            
-            if ($existe[0]['count'] > 0) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe una talla con ese nombre y tipo']);
-                return;
-            }
-
             $talla = new Talla([
                 'talla_nombre' => trim($_POST['talla_nombre']),
-                'talla_descripcion' => trim($_POST['talla_descripcion']),
+                'talla_descripcion' => trim($_POST['talla_descripcion'] ?? ''),
                 'talla_tipo' => trim($_POST['talla_tipo']),
                 'talla_situacion' => 1
             ]);
 
-            $resultado = $talla->crear();
+            $talla->crear();
             echo json_encode(['codigo' => 1, 'mensaje' => 'Talla registrada correctamente']);
             
         } catch (Exception $e) {
@@ -146,12 +130,6 @@ class TallaController extends ActiveRecord
             return;
         }
 
-        if (empty($_POST['talla_descripcion'])) {
-            http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'La descripción de la talla es obligatoria']);
-            return;
-        }
-
         if (empty($_POST['talla_tipo'])) {
             http_response_code(400);
             echo json_encode(['codigo' => 0, 'mensaje' => 'El tipo de talla es obligatorio']);
@@ -173,22 +151,9 @@ class TallaController extends ActiveRecord
                 return;
             }
 
-            // Verificar duplicidad excluyendo el registro actual
-            $existe = self::fetchArray("SELECT COUNT(*) as count FROM mrml_talla 
-                                       WHERE talla_nombre = '" . trim($_POST['talla_nombre']) . "' 
-                                       AND talla_tipo = '" . trim($_POST['talla_tipo']) . "' 
-                                       AND talla_situacion = 1 
-                                       AND talla_id != " . intval($id));
-            
-            if ($existe[0]['count'] > 0) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe otra talla con ese nombre y tipo']);
-                return;
-            }
-
             $talla->sincronizar([
                 'talla_nombre' => trim($_POST['talla_nombre']),
-                'talla_descripcion' => trim($_POST['talla_descripcion']),
+                'talla_descripcion' => trim($_POST['talla_descripcion'] ?? ''),
                 'talla_tipo' => trim($_POST['talla_tipo']),
                 'talla_situacion' => 1
             ]);
@@ -226,25 +191,10 @@ class TallaController extends ActiveRecord
                 return;
             }
 
-            // Verificar si la talla está siendo usada en inventario
-            $enUso = self::fetchArray("SELECT COUNT(*) as count FROM mrml_dotacion_inventario 
-                                      WHERE talla_id = " . intval($id) . " AND dotacion_inv_situacion = 1");
-            
-            if ($enUso[0]['count'] > 0) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'No se puede eliminar la talla porque está siendo utilizada en el inventario']);
-                return;
-            }
-
             $talla->sincronizar(['talla_situacion' => 0]);
-            $resultado = $talla->actualizar();
+            $talla->actualizar();
 
-            if ($resultado['resultado']) {
-                echo json_encode(['codigo' => 1, 'mensaje' => 'Talla eliminada correctamente']);
-            } else {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo eliminar la talla']);
-            }
+            echo json_encode(['codigo' => 1, 'mensaje' => 'Talla eliminada correctamente']);
             
         } catch (Exception $e) {
             http_response_code(500);

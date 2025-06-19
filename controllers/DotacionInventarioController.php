@@ -15,20 +15,86 @@ class DotacionInventarioController extends ActiveRecord
         $router->render('dotacioninventario/index', []);
     }
 
+    public static function buscarAPI()
+    {
+        try {
+            $sql = "SELECT di.*, td.tipo_dotacion_nombre, t.talla_nombre, t.talla_descripcion
+                    FROM mrml_dotacion_inventario di
+                    JOIN mrml_tipo_dotacion td ON di.tipo_dotacion_id = td.tipo_dotacion_id
+                    JOIN mrml_talla t ON di.talla_id = t.talla_id
+                    WHERE di.dotacion_inv_situacion = 1 
+                    ORDER BY td.tipo_dotacion_nombre, t.talla_id ASC";
+            
+            $data = self::fetchArray($sql);
+
+            // DEBUGGING: Log para ver qué datos se están devolviendo
+            error_log("DotacionInventario - Datos encontrados: " . count($data));
+            if (!empty($data)) {
+                error_log("Primer registro: " . json_encode($data[0]));
+            }
+
+            http_response_code(200);
+            echo json_encode([
+                'codigo' => 1,
+                'mensaje' => 'Inventario obtenido correctamente',
+                'data' => $data
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Error en buscarAPI DotacionInventario: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'codigo' => 0,
+                'mensaje' => 'Error al obtener el inventario',
+                'detalle' => $e->getMessage()
+            ]);
+        }
+    }
+
     public static function guardarAPI()
     {
         getHeadersApi();
 
-        $validacion = self::validarCampos($_POST);
-        if ($validacion !== true) {
+        // Validaciones básicas
+        if (empty($_POST['tipo_dotacion_id'])) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => $validacion]);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El tipo de dotación es obligatorio']);
+            return;
+        }
+
+        if (empty($_POST['talla_id'])) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'La talla es obligatoria']);
+            return;
+        }
+
+        if (empty($_POST['dotacion_inv_marca'])) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'La marca es obligatoria']);
+            return;
+        }
+
+        if (empty($_POST['dotacion_inv_modelo'])) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El modelo es obligatorio']);
+            return;
+        }
+
+        if (empty($_POST['dotacion_inv_cantidad_inicial']) || !is_numeric($_POST['dotacion_inv_cantidad_inicial']) || $_POST['dotacion_inv_cantidad_inicial'] <= 0) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'La cantidad inicial debe ser un número mayor a 0']);
+            return;
+        }
+
+        if (!empty($_POST['dotacion_inv_precio_unitario']) && (!is_numeric($_POST['dotacion_inv_precio_unitario']) || $_POST['dotacion_inv_precio_unitario'] < 0)) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El precio unitario debe ser un número mayor o igual a 0']);
             return;
         }
 
         try {
             $cantidadInicial = intval($_POST['dotacion_inv_cantidad_inicial']);
-
+            
             $inventario = new DotacionInventario([
                 'tipo_dotacion_id' => intval($_POST['tipo_dotacion_id']),
                 'talla_id' => intval($_POST['talla_id']),
@@ -37,7 +103,7 @@ class DotacionInventarioController extends ActiveRecord
                 'dotacion_inv_color' => trim($_POST['dotacion_inv_color'] ?? ''),
                 'dotacion_inv_material' => trim($_POST['dotacion_inv_material'] ?? ''),
                 'dotacion_inv_cantidad_inicial' => $cantidadInicial,
-                'dotacion_inv_cantidad_actual' => $cantidadInicial,
+                'dotacion_inv_cantidad_actual' => $cantidadInicial, // Al crear, actual = inicial
                 'dotacion_inv_cantidad_minima' => intval($_POST['dotacion_inv_cantidad_minima'] ?? 5),
                 'dotacion_inv_precio_unitario' => floatval($_POST['dotacion_inv_precio_unitario'] ?? 0),
                 'dotacion_inv_proveedor' => trim($_POST['dotacion_inv_proveedor'] ?? ''),
@@ -48,7 +114,7 @@ class DotacionInventarioController extends ActiveRecord
             ]);
 
             $resultado = $inventario->crear();
-
+            
             if ($resultado['resultado']) {
                 echo json_encode(['codigo' => 1, 'mensaje' => 'Inventario registrado correctamente']);
             } else {
@@ -57,90 +123,16 @@ class DotacionInventarioController extends ActiveRecord
             }
 
         } catch (Exception $e) {
-            error_log("Error en guardarAPI: " . $e->getMessage());
+            error_log("Error guardando inventario: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['codigo' => 0, 'mensaje' => 'Error al guardar', 'detalle' => $e->getMessage()]);
-        }
-    }
-
-    public static function buscarAPI()
-    {
-        try {
-            $data = self::fetchArray("
-                SELECT
-                    ina.dotacion_inv_id,
-                    ina.tipo_dotacion_id,
-                    ina.talla_id,
-                    ina.dotacion_inv_marca,
-                    ina.dotacion_inv_modelo,
-                    ina.dotacion_inv_color,
-                    ina.dotacion_inv_material,
-                    ina.dotacion_inv_cantidad_inicial,
-                    ina.dotacion_inv_cantidad_actual,
-                    ina.dotacion_inv_cantidad_minima,
-                    ina.dotacion_inv_precio_unitario,
-                    ina.dotacion_inv_proveedor,
-                    ina.dotacion_inv_fecha_ingreso,
-                    ina.dotacion_inv_fecha_vencimiento,
-                    ina.dotacion_inv_observaciones,
-                    ina.dotacion_inv_situacion,
-                    ina.dotacion_inv_fecha_registro,
-                    ta.talla_nombre,
-                    do.tipo_dotacion_nombre
-                FROM mrml_dotacion_inventario ina
-                INNER JOIN mrml_talla ta ON ta.talla_id = ina.talla_id
-                INNER JOIN mrml_tipo_dotacion do ON do.tipo_dotacion_id = ina.tipo_dotacion_id
-                WHERE ina.dotacion_inv_situacion = 1
-                ORDER BY do.tipo_dotacion_nombre ASC, ta.talla_nombre ASC
-            ");
-
-            http_response_code(200);
-            echo json_encode([
-                'codigo' => 1,
-                'mensaje' => 'Inventario obtenido correctamente',
-                'data' => $data
-            ]);
-
-        } catch (Exception $e) {
-            error_log("Error en buscarAPI: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al obtener el inventario',
-                'detalle' => $e->getMessage()
-            ]);
-        }
-    }
-
-    public static function buscarDisponibleAPI()
-    {
-        $tipoDotacionId = $_GET['tipo_dotacion_id'] ?? null;
-        $tallaId = $_GET['talla_id'] ?? null;
-
-        try {
-            $data = DotacionInventario::obtenerInventarioDisponible($tipoDotacionId, $tallaId);
-
-            echo json_encode([
-                'codigo' => 1,
-                'mensaje' => 'Inventario disponible obtenido',
-                'data' => $data
-            ]);
-
-        } catch (Exception $e) {
-            error_log("Error en buscarDisponibleAPI: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al obtener inventario disponible',
-                'detalle' => $e->getMessage()
-            ]);
         }
     }
 
     public static function modificarAPI()
     {
         getHeadersApi();
-
+        
         $id = $_POST['dotacion_inv_id'] ?? null;
 
         if (!$id) {
@@ -149,10 +141,22 @@ class DotacionInventarioController extends ActiveRecord
             return;
         }
 
-        $validacion = self::validarCampos($_POST, false);
-        if ($validacion !== true) {
+        // Validaciones básicas
+        if (empty($_POST['tipo_dotacion_id'])) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => $validacion]);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El tipo de dotación es obligatorio']);
+            return;
+        }
+
+        if (empty($_POST['talla_id'])) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'La talla es obligatoria']);
+            return;
+        }
+
+        if (empty($_POST['dotacion_inv_cantidad_actual']) || !is_numeric($_POST['dotacion_inv_cantidad_actual']) || $_POST['dotacion_inv_cantidad_actual'] < 0) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'La cantidad actual debe ser un número mayor o igual a 0']);
             return;
         }
 
@@ -191,7 +195,7 @@ class DotacionInventarioController extends ActiveRecord
             }
 
         } catch (Exception $e) {
-            error_log("Error en modificarAPI: " . $e->getMessage());
+            error_log("Error modificando inventario: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['codigo' => 0, 'mensaje' => 'Error al modificar', 'detalle' => $e->getMessage()]);
         }
@@ -209,92 +213,21 @@ class DotacionInventarioController extends ActiveRecord
 
         try {
             $inventario = DotacionInventario::find($id);
-
             if (!$inventario) {
                 http_response_code(404);
                 echo json_encode(['codigo' => 0, 'mensaje' => 'Inventario no encontrado']);
                 return;
             }
 
-            // Verificar si el inventario está siendo usado en entregas
-            $enUso = self::fetchArray("SELECT COUNT(*) as count FROM mrml_dotacion_entrega_detalle 
-                                      WHERE dotacion_inv_id = " . intval($id) . " AND entrega_det_situacion = 1");
-            
-            if ($enUso[0]['count'] > 0) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'No se puede eliminar el inventario porque está siendo utilizado en entregas']);
-                return;
-            }
-
             $inventario->sincronizar(['dotacion_inv_situacion' => 0]);
-            $resultado = $inventario->actualizar();
+            $inventario->actualizar();
 
-            if ($resultado['resultado']) {
-                echo json_encode(['codigo' => 1, 'mensaje' => 'Inventario eliminado correctamente']);
-            } else {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo eliminar el inventario']);
-            }
-
+            echo json_encode(['codigo' => 1, 'mensaje' => 'Inventario eliminado correctamente']);
+            
         } catch (Exception $e) {
-            error_log("Error en eliminarAPI: " . $e->getMessage());
+            error_log("Error eliminando inventario: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['codigo' => 0, 'mensaje' => 'Error al eliminar', 'detalle' => $e->getMessage()]);
         }
-    }
-
-    // Función para validar campos
-    private static function validarCampos($datos, $esCreacion = true)
-    {
-        // Validaciones básicas
-        if (empty($datos['tipo_dotacion_id'])) {
-            return 'El tipo de dotación es obligatorio';
-        }
-
-        if (empty($datos['talla_id'])) {
-            return 'La talla es obligatoria';
-        }
-
-        if (empty($datos['dotacion_inv_marca'])) {
-            return 'La marca es obligatoria';
-        }
-
-        if (empty($datos['dotacion_inv_modelo'])) {
-            return 'El modelo es obligatorio';
-        }
-
-        if ($esCreacion) {
-            if (empty($datos['dotacion_inv_cantidad_inicial']) || !is_numeric($datos['dotacion_inv_cantidad_inicial']) || $datos['dotacion_inv_cantidad_inicial'] <= 0) {
-                return 'La cantidad inicial debe ser un número mayor a 0';
-            }
-        } else {
-            if (empty($datos['dotacion_inv_cantidad_actual']) || !is_numeric($datos['dotacion_inv_cantidad_actual']) || $datos['dotacion_inv_cantidad_actual'] < 0) {
-                return 'La cantidad actual debe ser un número mayor o igual a 0';
-            }
-        }
-
-        if (!empty($datos['dotacion_inv_precio_unitario']) && (!is_numeric($datos['dotacion_inv_precio_unitario']) || $datos['dotacion_inv_precio_unitario'] < 0)) {
-            return 'El precio unitario debe ser un número mayor o igual a 0';
-        }
-
-        // Validar que el tipo de dotación existe
-        $tipoExiste = self::fetchArray("SELECT COUNT(*) as count FROM mrml_tipo_dotacion 
-                                       WHERE tipo_dotacion_id = " . intval($datos['tipo_dotacion_id']) . " 
-                                       AND tipo_dotacion_situacion = 1");
-        
-        if ($tipoExiste[0]['count'] == 0) {
-            return 'El tipo de dotación seleccionado no es válido';
-        }
-
-        // Validar que la talla existe
-        $tallaExiste = self::fetchArray("SELECT COUNT(*) as count FROM mrml_talla 
-                                        WHERE talla_id = " . intval($datos['talla_id']) . " 
-                                        AND talla_situacion = 1");
-        
-        if ($tallaExiste[0]['count'] == 0) {
-            return 'La talla seleccionada no es válida';
-        }
-
-        return true;
     }
 }
