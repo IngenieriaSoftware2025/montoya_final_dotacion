@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/app.php';
 use Controllers\AplicacionController;
 use MVC\Router;
 use Controllers\AppController;
+use Controllers\AsignacionPermisoController;
 use Controllers\DotacionInventarioController;
 use Controllers\EmpleadoController;
 use Controllers\LoginController;
@@ -81,6 +82,12 @@ $router->post('/permiso/guardarAPI', [permisoController::class, 'guardarAPI']);
 $router->get('/permiso/buscarAPI', [permisoController::class, 'buscarAPI']);
 $router->post('/permiso/eliminarAPI', [permisoController::class, 'eliminarAPI']);
 $router->post('/permiso/cambiarEstadoAPI', [permisoController::class, 'cambiarEstadoAPI']);
+
+$router->get('/asignacion_permiso', [AsignacionPermisoController::class, 'renderizarPagina']);
+$router->post('/asignacion_permiso/guardarAPI', [AsignacionPermisoController::class, 'guardarAPI']);
+$router->get('/asignacion_permiso/buscarAPI', [AsignacionPermisoController::class, 'buscarAPI']);
+$router->post('/asignacion_permiso/modificarAPI', [AsignacionPermisoController::class, 'modificarAPI']);
+$router->get('/asignacion_permiso/eliminar', [AsignacionPermisoController::class, 'eliminarAPI']);
 
 // Comprueba y valida las rutas, que existan y les asigna las funciones del Controlador
 $router->comprobarRutas();
