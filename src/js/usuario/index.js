@@ -4,11 +4,11 @@ import DataTable from "datatables.net-bs5";
 import { validarFormulario } from "../funciones";
 import { lenguaje } from "../lenguaje";
 
-// Elementos del DOM - CORREGIDOS para coincidir con el HTML
-const FormularioUsuarios = document.getElementById('userForm'); // Cambiado de FormularioUsuarios
-const BtnGuardar = document.getElementById('btnRegistrar'); // Cambiado de BtnGuardar
-const BtnModificar = document.getElementById('btnModificar'); // Cambiado de BtnModificar
-const BtnLimpiar = document.getElementById('btnLimpiar'); // Cambiado de BtnLimpiar
+// Elementos del DOM
+const FormularioUsuarios = document.getElementById('userForm');
+const BtnGuardar = document.getElementById('btnRegistrar'); // 
+const BtnModificar = document.getElementById('btnModificar');
+const BtnLimpiar = document.getElementById('btnLimpiar'); // 
 const usuario_tel = document.getElementById('usuario_tel');
 const usuario_dpi = document.getElementById('usuario_dpi');
 const usuario_contra = document.getElementById('usuario_contra');

@@ -14,6 +14,7 @@ module.exports = {
     'js/empleado/index' : './src/js/empleado/index.js',
     'js/dotacioninventario/index' : './src/js/dotacioninventario/index.js',
     'js/asignacion_permiso/index' : './src/js/asignacion_permiso/index.js',
+    'js/dashboard/index' : './src/js/dashboard/index.js',
   },
   output: {
     filename: '[name].js',

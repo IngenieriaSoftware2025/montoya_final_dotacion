@@ -13,7 +13,7 @@ class TipoDotacion extends ActiveRecord
 
     public static $idTabla = 'tipo_dotacion_id';
 
-    // Propiedades
+  
     public $tipo_dotacion_id;
     public $tipo_dotacion_nombre;
     public $tipo_dotacion_descripcion;

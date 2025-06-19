@@ -3,7 +3,7 @@
         
         <!-- HEADER -->
         <div class="card-header bg-primary text-white text-center rounded-top-4 py-4">
-            <h3 class="mb-0 fw-bold">MovilCare</h3>
+            <h3 class="mb-0 fw-bold">Industria Militar</h3>
             <p class="mb-0 opacity-75">Sistema de Gestión</p>
         </div>
         

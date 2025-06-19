@@ -49,9 +49,7 @@ class Empleado extends ActiveRecord
         $this->empleado_situacion = $args['empleado_situacion'] ?? 1;
     }
 
-    /**
-     * Validaciones antes de guardar
-     */
+    
     public function validar()
     {
         $errores = [];
@@ -87,9 +85,6 @@ class Empleado extends ActiveRecord
         return $errores;
     }
 
-    /**
-     * Verificar si existe empleado con correo o DPI - CORREGIDO
-     */
     public static function verificarEmpleadoExistente($correo, $dpi, $excluirId = null)
     {
         try {
@@ -112,7 +107,7 @@ class Empleado extends ActiveRecord
 
             $resultado = self::fetchArray($sql);
             
-            // ASEGURAR que siempre retorne la estructura correcta
+    
             if (!empty($resultado) && isset($resultado[0])) {
                 return [
                     'correo_existe' => intval($resultado[0]['correo_existe']),
@@ -129,9 +124,7 @@ class Empleado extends ActiveRecord
         }
     }
 
-    /**
-     * Obtener empleado por ID
-     */
+
     public static function obtenerPorId($id)
     {
         try {
@@ -150,9 +143,7 @@ class Empleado extends ActiveRecord
         }
     }
 
-    /**
-     * Obtener empleado activo por ID
-     */
+
     public static function obtenerEmpleadoActivo($id)
     {
         try {
@@ -171,9 +162,6 @@ class Empleado extends ActiveRecord
         }
     }
 
-    /**
-     * Buscar el primer registro que coincida con la consulta - MEJORADO
-     */
     public static function fetchFirst($query, $params = [])
     {
         try {
@@ -190,9 +178,7 @@ class Empleado extends ActiveRecord
         }
     }
 
-    /**
-     * Obtener empleados activos para selects
-     */
+
     public static function obtenerEmpleadosActivos()
     {
         $sql = "SELECT 
@@ -205,18 +191,15 @@ class Empleado extends ActiveRecord
         return self::fetchArray($sql);
     }
 
-    /**
-     * Eliminar empleado (cambiar situación) - NUEVO
-     */
+
+ 
     public static function EliminarEmpleado($id)
     {
         $sql = "UPDATE " . self::$tabla . " SET empleado_situacion = 0 WHERE " . self::$idTabla . " = " . intval($id);
         return self::$db->exec($sql);
     }
 
-    /**
-     * Sanear cadena de entrada
-     */
+ 
     private static function sanitizarCadena($valor)
     {
         return htmlspecialchars(trim($valor), ENT_QUOTES, 'UTF-8');

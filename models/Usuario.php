@@ -61,7 +61,7 @@ class Usuario extends ActiveRecord
         $this->usuario_ultimo_acceso = $args['usuario_ultimo_acceso'] ?? null;
     }
 
-    // Verificar si existe un correo o DPI ya registrado
+
     public static function verificarCorreoODpiExistente($correo, $dpi, $excluirId = null)
     {
         $correo = self::sanitizarCadena($correo);
@@ -75,7 +75,6 @@ class Usuario extends ActiveRecord
             $condDpi .= " AND usuario_id != " . intval($excluirId);
         }
 
-        // DEBUG
         error_log("SQL correo: SELECT COUNT(*) FROM usuario WHERE $condCorreo");
         error_log("SQL DPI: SELECT COUNT(*) FROM usuario WHERE $condDpi");
 

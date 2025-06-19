@@ -155,7 +155,7 @@ class AplicacionController extends ActiveRecord
                 return;
             }
 
-            // Verificar duplicidad (excluyendo la aplicación actual)
+            // Verificar duplicidad
             try {
                 $existe = Aplicacion::verificarAplicacionExistente($_POST['app_nombre_corto'], $id);
                 

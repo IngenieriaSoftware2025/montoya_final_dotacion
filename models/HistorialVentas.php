@@ -3,7 +3,7 @@
 namespace Model;
 
 //Modelo de Tabla Historial de Ventas
-//Este detalla la venta
+
 class HistorialVenta extends ActiveRecord {
     
     public static $tabla = 'mrml_historial_venta';

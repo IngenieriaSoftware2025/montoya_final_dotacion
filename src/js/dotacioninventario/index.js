@@ -1,4 +1,4 @@
-// dotacioninventario/index.js - CORREGIDO
+// dotacioninventario/index.js
 import Swal from "sweetalert2";
 import DataTable from "datatables.net-bs5";
 import { validarFormulario } from "../funciones";
@@ -87,7 +87,7 @@ const CargarTallas = async () => {
             tipoTalla = 'CALZADO';
         }
 
-        // URL CORREGIDA
+
         const url = `/montoya_final_dotacion_ingsoft/talla/buscarPorTipoAPI?tipo=${tipoTalla}`;
         const respuesta = await fetch(url);
         const { codigo, data } = await respuesta.json();
@@ -134,7 +134,7 @@ const GuardarInventario = async (event) => {
     }
 
     const body = new FormData(FormularioDotaciones);
-    // URL CORREGIDA
+
     const url = '/montoya_final_dotacion_ingsoft/dotacioninventario/guardarAPI';
 
     try {

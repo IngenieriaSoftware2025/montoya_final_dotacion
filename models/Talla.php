@@ -15,7 +15,7 @@ class Talla extends ActiveRecord
 
     public static $idTabla = 'talla_id';
 
-    // Propiedades
+ 
     public $talla_id;
     public $talla_nombre;
     public $talla_descripcion;

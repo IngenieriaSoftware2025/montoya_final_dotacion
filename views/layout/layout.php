@@ -415,27 +415,16 @@
         <!-- Navbar content -->
         <div class="collapse navbar-collapse" id="navbarContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
-                <!-- Dashboard -->
-                <li class="nav-item">
-                    <a class="nav-link active" href="/montoya_final_dotacion_ingsoft/">
-                        <i class="bi bi-house-fill"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="/montoya_final_dotacion_ingsoft/dashboard">
-                        <i class="bi bi-bar-chart-fill"></i>
-                        Estadísticas
-                    </a>
-                </li>
-
-                <!-- Catálogos Base -->
+                
+            <?php if (isset($_SESSION['Admin']) || isset($_SESSION['Admin'])): ?>
+                
+                    <!-- Catálogos Base -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-gear-wide-connected"></i>
                         Catálogos Base
                     </a>
+                
                     <ul class="dropdown-menu">
                         <li>
                             <a class="dropdown-item" href="/montoya_final_dotacion_ingsoft/tipodotacion">
@@ -557,9 +546,9 @@
                             </li>
                         </ul>
                     </li>
-
+                
             </ul>
-
+<?php endif; ?>
             <!-- Botón menú -->
            <a href="/montoya_final_dotacion_ingsoft/logout" class="btn btn-menu">
                 <i class="bi bi-box-arrow-right me-2"></i>

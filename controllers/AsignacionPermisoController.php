@@ -12,7 +12,6 @@ class AsignacionPermisoController extends ActiveRecord
     public static function renderizarPagina(Router $router)
     {
         isAuth(); // verificar autenticación
-        hasPermission(['SEG_ADMIN']); // verificar permisos
         $router->render('asignacion_permiso/index', []);
     }
 
