@@ -1,68 +1,60 @@
 <?php
+
 namespace Controllers;
 
 use Exception;
-use MVC\Router;
 use Model\ActiveRecord;
 use Model\TipoDotacion;
+use MVC\Router;
 
 class TipoDotacionController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        isAuth();
-        $router->render('tipodotacion/index', []);
+        $router->render('TipoDotacion/index', []);
     }
 
-    public static function buscarAPI()
-    {
-        try {
-            $condiciones = ["tipo_dotacion_situacion = 1"];
-            $where = implode(" AND ", $condiciones);
-            $sql = "SELECT * FROM mrml_tipo_dotacion WHERE $where ORDER BY tipo_dotacion_nombre ASC";
-            $data = self::fetchArray($sql);
-
-            http_response_code(200);
-            echo json_encode([
-                'codigo' => 1,
-                'mensaje' => 'Tipos de dotación obtenidos correctamente',
-                'data' => $data
-            ]);
-
-        } catch (Exception $e) {
-            http_response_code(400);
-            echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al obtener los tipos de dotación',
-                'detalle' => $e->getMessage(),
-            ]);
-        }
-    }
-
+    // API: Guardar Tipo de Dotación
     public static function guardarAPI()
     {
         getHeadersApi();
 
-        // Validaciones básicas
-        if (empty($_POST['tipo_dotacion_nombre'])) {
+        $campos = [
+            'tipo_dotacion_nombre', 'tipo_dotacion_descripcion'
+        ];
+
+        // Validar campos requeridos
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => "El campo $campo es requerido"]);
+                return;
+            }
+        }
+
+        // Validar longitud del nombre
+        if (strlen($_POST['tipo_dotacion_nombre']) < 2) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El nombre del tipo de dotación es obligatorio']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El nombre del tipo de dotación es demasiado corto']);
             return;
         }
 
-        if (strlen($_POST['tipo_dotacion_nombre']) < 2) {
+        // Verificar duplicidad de nombre
+        $existe = TipoDotacion::verificarExistente($_POST['tipo_dotacion_nombre']);
+        if ($existe['nombre_existe']) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El nombre debe tener al menos 2 caracteres']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe un tipo de dotación con ese nombre']);
             return;
         }
 
         try {
             $tipoDotacion = new TipoDotacion([
-                'tipo_dotacion_nombre' => trim($_POST['tipo_dotacion_nombre']),
-                'tipo_dotacion_descripcion' => trim($_POST['tipo_dotacion_descripcion'] ?? ''),
+                'tipo_dotacion_nombre' => $_POST['tipo_dotacion_nombre'],
+                'tipo_dotacion_descripcion' => $_POST['tipo_dotacion_descripcion'],
                 'tipo_dotacion_situacion' => 1
+                // NO incluimos fecha - que la BD la maneje
             ]);
-
+            
             $tipoDotacion->crear();
             echo json_encode(['codigo' => 1, 'mensaje' => 'Tipo de dotación registrado correctamente']);
             
@@ -72,6 +64,7 @@ class TipoDotacionController extends ActiveRecord
         }
     }
 
+    // API: Modificar Tipo de Dotación
     public static function modificarAPI()
     {
         getHeadersApi();
@@ -84,16 +77,23 @@ class TipoDotacionController extends ActiveRecord
             return;
         }
 
-        // Validaciones básicas
-        if (empty($_POST['tipo_dotacion_nombre'])) {
-            http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El nombre del tipo de dotación es obligatorio']);
-            return;
+        $campos = [
+            'tipo_dotacion_nombre', 'tipo_dotacion_descripcion'
+        ];
+
+        // Validar campos requeridos
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => "El campo $campo es requerido"]);
+                return;
+            }
         }
 
+        // Validar longitud del nombre
         if (strlen($_POST['tipo_dotacion_nombre']) < 2) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El nombre debe tener al menos 2 caracteres']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El nombre del tipo de dotación es demasiado corto']);
             return;
         }
 
@@ -106,13 +106,19 @@ class TipoDotacionController extends ActiveRecord
                 return;
             }
 
-            $tipoDotacion->sincronizar([
-                'tipo_dotacion_nombre' => trim($_POST['tipo_dotacion_nombre']),
-                'tipo_dotacion_descripcion' => trim($_POST['tipo_dotacion_descripcion'] ?? ''),
-                'tipo_dotacion_situacion' => 1
-            ]);
+            // Verificar duplicidad de nombre (excluyendo el registro actual)
+            $existe = TipoDotacion::verificarExistente($_POST['tipo_dotacion_nombre'], $id);
+            if ($existe['nombre_existe']) {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe otro tipo de dotación con ese nombre']);
+                return;
+            }
 
-            $resultado = $tipoDotacion->actualizar();
+            // USAR EL MÉTODO ESPECÍFICO DEL MODELO (evita problemas con fecha)
+            $resultado = $tipoDotacion->actualizarDatos(
+                $_POST['tipo_dotacion_nombre'], 
+                $_POST['tipo_dotacion_descripcion']
+            );
 
             if ($resultado['resultado']) {
                 echo json_encode(['codigo' => 1, 'mensaje' => 'Tipo de dotación actualizado correctamente']);
@@ -127,8 +133,11 @@ class TipoDotacionController extends ActiveRecord
         }
     }
 
+    // API: Eliminar Tipo de Dotación (eliminación lógica)
     public static function eliminarAPI()
     {
+        getHeadersApi();
+        
         $id = $_GET['id'] ?? null;
 
         if (!$id) {
@@ -139,20 +148,47 @@ class TipoDotacionController extends ActiveRecord
 
         try {
             $tipoDotacion = TipoDotacion::find($id);
+            
             if (!$tipoDotacion) {
                 http_response_code(404);
                 echo json_encode(['codigo' => 0, 'mensaje' => 'Tipo de dotación no encontrado']);
                 return;
             }
 
-            $tipoDotacion->sincronizar(['tipo_dotacion_situacion' => 0]);
-            $tipoDotacion->actualizar();
+            // USAR EL MÉTODO ESPECÍFICO DEL MODELO (evita problemas con fecha)
+            $resultado = $tipoDotacion->eliminarLogico();
 
-            echo json_encode(['codigo' => 1, 'mensaje' => 'Tipo de dotación eliminado correctamente']);
+            if ($resultado['resultado']) {
+                echo json_encode(['codigo' => 1, 'mensaje' => 'Tipo de dotación eliminado correctamente']);
+            } else {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo eliminar el tipo de dotación']);
+            }
             
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['codigo' => 0, 'mensaje' => 'Error al eliminar', 'detalle' => $e->getMessage()]);
+        }
+    }
+
+    // API: Obtener todos los tipos de dotación activos
+    public static function obtenerActivosAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $tiposDotacion = TipoDotacion::obtenerActivos();
+            
+            // Verificar si hay datos
+            if (!empty($tiposDotacion)) {
+                echo json_encode(['codigo' => 1, 'datos' => $tiposDotacion]);
+            } else {
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No hay tipos de dotación registrados', 'datos' => []]);
+            }
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al obtener datos', 'detalle' => $e->getMessage()]);
         }
     }
 }

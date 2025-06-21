@@ -3,105 +3,63 @@
 namespace Controllers;
 
 use Exception;
-use MVC\Router;
 use Model\ActiveRecord;
 use Model\Talla;
+use MVC\Router;
 
 class TallaController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        isAuth();
-        $router->render('talla/index', []);
+        $router->render('Talla/index', []);
     }
 
-    public static function buscarAPI()
-    {
-        try {
-            $condiciones = ["talla_situacion = 1"];
-            $where = implode(" AND ", $condiciones);
-            $sql = "SELECT * FROM mrml_talla WHERE $where ORDER BY talla_tipo ASC, talla_id ASC";
-            $data = self::fetchArray($sql);
-
-            http_response_code(200);
-            echo json_encode([
-                'codigo' => 1,
-                'mensaje' => 'Tallas obtenidas correctamente',
-                'data' => $data
-            ]);
-
-        } catch (Exception $e) {
-            http_response_code(400);
-            echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al obtener las tallas',
-                'detalle' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    // MÉTODO QUE FALTABA - AGREGAR ESTE
-    public static function buscarPorTipoAPI()
-    {
-        $tipo = $_GET['tipo'] ?? '';
-        
-        if (empty($tipo)) {
-            http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'Tipo de talla requerido']);
-            return;
-        }
-
-        try {
-            $data = Talla::obtenerTallasPorTipo($tipo);
-
-            echo json_encode([
-                'codigo' => 1,
-                'mensaje' => 'Tallas obtenidas correctamente',
-                'data' => $data
-            ]);
-
-        } catch (Exception $e) {
-            error_log("Error en buscarPorTipoAPI: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al obtener las tallas',
-                'detalle' => $e->getMessage(),
-            ]);
-        }
-    }
-
+    // API: Guardar Talla
     public static function guardarAPI()
     {
         getHeadersApi();
 
-        // Validaciones básicas
-        if (empty($_POST['talla_nombre'])) {
+        $campos = [
+            'talla_codigo', 'talla_descripcion'
+        ];
+
+        // Validar campos requeridos
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => "El campo $campo es requerido"]);
+                return;
+            }
+        }
+
+        // Validar longitud del código
+        if (strlen($_POST['talla_codigo']) < 1) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El nombre de la talla es obligatorio']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El código de la talla es requerido']);
             return;
         }
 
-        if (empty($_POST['talla_tipo'])) {
+        if (strlen($_POST['talla_codigo']) > 10) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El tipo de talla es obligatorio']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El código de la talla no puede exceder 10 caracteres']);
             return;
         }
 
-        if (!in_array($_POST['talla_tipo'], ['CALZADO', 'ROPA'])) {
+        // Verificar duplicidad de código
+        $existe = Talla::verificarExistente($_POST['talla_codigo']);
+        if ($existe['codigo_existe']) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El tipo de talla debe ser CALZADO o ROPA']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe una talla con ese código']);
             return;
         }
 
         try {
             $talla = new Talla([
-                'talla_nombre' => trim($_POST['talla_nombre']),
-                'talla_descripcion' => trim($_POST['talla_descripcion'] ?? ''),
-                'talla_tipo' => trim($_POST['talla_tipo']),
+                'talla_codigo' => $_POST['talla_codigo'],
+                'talla_descripcion' => $_POST['talla_descripcion'],
                 'talla_situacion' => 1
             ]);
-
+            
             $talla->crear();
             echo json_encode(['codigo' => 1, 'mensaje' => 'Talla registrada correctamente']);
             
@@ -111,6 +69,7 @@ class TallaController extends ActiveRecord
         }
     }
 
+    // API: Modificar Talla
     public static function modificarAPI()
     {
         getHeadersApi();
@@ -123,22 +82,29 @@ class TallaController extends ActiveRecord
             return;
         }
 
-        // Validaciones básicas
-        if (empty($_POST['talla_nombre'])) {
+        $campos = [
+            'talla_codigo', 'talla_descripcion'
+        ];
+
+        // Validar campos requeridos
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => "El campo $campo es requerido"]);
+                return;
+            }
+        }
+
+        // Validar longitud del código
+        if (strlen($_POST['talla_codigo']) < 1) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El nombre de la talla es obligatorio']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El código de la talla es requerido']);
             return;
         }
 
-        if (empty($_POST['talla_tipo'])) {
+        if (strlen($_POST['talla_codigo']) > 10) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El tipo de talla es obligatorio']);
-            return;
-        }
-
-        if (!in_array($_POST['talla_tipo'], ['CALZADO', 'ROPA'])) {
-            http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El tipo de talla debe ser CALZADO o ROPA']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El código de la talla no puede exceder 10 caracteres']);
             return;
         }
 
@@ -151,14 +117,19 @@ class TallaController extends ActiveRecord
                 return;
             }
 
-            $talla->sincronizar([
-                'talla_nombre' => trim($_POST['talla_nombre']),
-                'talla_descripcion' => trim($_POST['talla_descripcion'] ?? ''),
-                'talla_tipo' => trim($_POST['talla_tipo']),
-                'talla_situacion' => 1
-            ]);
+            // Verificar duplicidad de código (excluyendo el registro actual)
+            $existe = Talla::verificarExistente($_POST['talla_codigo'], $id);
+            if ($existe['codigo_existe']) {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe otra talla con ese código']);
+                return;
+            }
 
-            $resultado = $talla->actualizar();
+            // USAR EL MÉTODO ESPECÍFICO DEL MODELO
+            $resultado = $talla->actualizarDatos(
+                $_POST['talla_codigo'], 
+                $_POST['talla_descripcion']
+            );
 
             if ($resultado['resultado']) {
                 echo json_encode(['codigo' => 1, 'mensaje' => 'Talla actualizada correctamente']);
@@ -173,8 +144,11 @@ class TallaController extends ActiveRecord
         }
     }
 
+    // API: Eliminar Talla (eliminación lógica)
     public static function eliminarAPI()
     {
+        getHeadersApi();
+        
         $id = $_GET['id'] ?? null;
 
         if (!$id) {
@@ -185,20 +159,47 @@ class TallaController extends ActiveRecord
 
         try {
             $talla = Talla::find($id);
+            
             if (!$talla) {
                 http_response_code(404);
                 echo json_encode(['codigo' => 0, 'mensaje' => 'Talla no encontrada']);
                 return;
             }
 
-            $talla->sincronizar(['talla_situacion' => 0]);
-            $talla->actualizar();
+            // USAR EL MÉTODO ESPECÍFICO DEL MODELO
+            $resultado = $talla->eliminarLogico();
 
-            echo json_encode(['codigo' => 1, 'mensaje' => 'Talla eliminada correctamente']);
+            if ($resultado['resultado']) {
+                echo json_encode(['codigo' => 1, 'mensaje' => 'Talla eliminada correctamente']);
+            } else {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo eliminar la talla']);
+            }
             
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['codigo' => 0, 'mensaje' => 'Error al eliminar', 'detalle' => $e->getMessage()]);
+        }
+    }
+
+    // API: Obtener todas las tallas activas
+    public static function obtenerActivasAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $tallas = Talla::obtenerActivas();
+            
+            // Verificar si hay datos
+            if (!empty($tallas)) {
+                echo json_encode(['codigo' => 1, 'datos' => $tallas]);
+            } else {
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No hay tallas registradas', 'datos' => []]);
+            }
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al obtener datos', 'detalle' => $e->getMessage()]);
         }
     }
 }

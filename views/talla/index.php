@@ -1,89 +1,151 @@
-<!-- Contenedor principal del formulario -->
-<div class="container mt-5 p-4 rounded-4 shadow-lg bg-light" style="max-width: 800px;">
-  <h3 class="mb-4 text-center text-primary fw-bold">
-    <i class="bi bi-rulers me-2"></i>Registro de Tallas
-  </h3>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <!-- Formulario -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-success text-white rounded-top-4">
+                    <h5 class="mb-0 text-center">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        <span id="form-title">Registrar Talla</span>
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form id="formTalla">
+                        <input type="hidden" id="talla_id" name="talla_id">
+                        
+                        <!-- Campo Código -->
+                        <div class="mb-3">
+                            <label for="talla_codigo" class="form-label">
+                                <i class="fas fa-tag me-1 text-success"></i>
+                                <strong>Código de Talla *</strong>
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="talla_codigo" 
+                                   name="talla_codigo" 
+                                   placeholder="Ej: XS, S, M, L, XL, 38, 40..."
+                                   required
+                                   minlength="1"
+                                   maxlength="10">
+                            <div class="invalid-feedback">
+                                El código es requerido (máximo 10 caracteres)
+                            </div>
+                        </div>
 
-  <form name="FormularioTallas" id="FormularioTallas" method="POST">
-    <input type="hidden" id="talla_id" name="talla_id">
+                        <!-- Campo Descripción -->
+                        <div class="mb-3">
+                            <label for="talla_descripcion" class="form-label">
+                                <i class="fas fa-align-left me-1 text-success"></i>
+                                <strong>Descripción</strong>
+                            </label>
+                            <textarea class="form-control" 
+                                      id="talla_descripcion" 
+                                      name="talla_descripcion" 
+                                      placeholder="Descripción de la talla..."
+                                      rows="3"
+                                      maxlength="50"></textarea>
+                            <div class="form-text">
+                                <small class="text-muted">Máximo 50 caracteres</small>
+                            </div>
+                        </div>
 
-    <div class="row g-3 mb-3">
-      <div class="col-md-6">
-        <label for="talla_nombre" class="form-label">
-          Nombre de la Talla <span class="text-danger">*</span>
-        </label>
-        <input type="text" 
-               class="form-control" 
-               id="talla_nombre" 
-               name="talla_nombre" 
-               required 
-               placeholder="Ej. 35, XS, M, L"
-               maxlength="10">
-      </div>
-      <div class="col-md-6">
-        <label for="talla_tipo" class="form-label">
-          Tipo de Talla <span class="text-danger">*</span>
-        </label>
-        <select class="form-select" id="talla_tipo" name="talla_tipo" required>
-          <option value="">Seleccione el tipo</option>
-          <option value="CALZADO">CALZADO</option>
-          <option value="ROPA">ROPA</option>
-        </select>
-      </div>
+                        <!-- Botones -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="btnSubmit">
+                                <span class="loading" style="display: none;">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>
+                                    Procesando...
+                                </span>
+                                <span class="btn-text">
+                                    <i class="fas fa-save me-2"></i>Guardar
+                                </span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="btnCancelar" onclick="limpiarFormulario()" style="display: none;">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Alerts -->
+                    <div id="alerts" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="mb-3">
-      <label for="talla_descripcion" class="form-label">
-        Descripción <span class="text-danger">*</span>
-      </label>
-      <input type="text" 
-             class="form-control" 
-             id="talla_descripcion" 
-             name="talla_descripcion" 
-             required
-             placeholder="Ej. Talla 35, Extra Small, Medium..."
-             maxlength="50">
-    </div>
-
-    <div class="row justify-content-center mt-4 g-2">
-      <div class="col-auto">
-        <button type="submit" class="btn btn-success px-4" id="BtnGuardar">
-          <i class="bi bi-check-circle me-1"></i> Guardar
-        </button>
-      </div>
-      <div class="col-auto">
-        <button type="button" class="btn btn-warning d-none px-4" id="BtnModificar">
-          <i class="bi bi-pencil-square me-1"></i> Modificar
-        </button>
-      </div>
-      <div class="col-auto">
-        <button type="reset" class="btn btn-secondary px-4" id="BtnLimpiar">
-          <i class="bi bi-eraser me-1"></i> Limpiar
-        </button>
-      </div>
-    </div>
-  </form>
 </div>
 
-<!-- Tabla de tallas -->
+<!-- Tabla de Tallas -->
 <div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-lg-10">
-      <div class="card shadow border-primary border-2 rounded-4">
-        <div class="card-header bg-primary text-white rounded-top-4">
-          <h4 class="text-center mb-0">
-            <i class="bi bi-table me-2"></i> Tallas Registradas
-          </h4>
+    <div class="row justify-content-center">
+        <div class="col-lg-11">
+            <div class="card shadow-lg border-success border-2 rounded-4">
+                <div class="card-header bg-success text-white rounded-top-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="bi bi-table me-2"></i> Tallas en la Base de Datos
+                        </h4>
+                        <button class="btn btn-light btn-sm rounded-pill" onclick="cargarTallas()" title="Actualizar datos">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-bordered w-100" id="TablaTallas">
+                            <!-- Contenido cargado dinámicamente -->
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body p-4">
-          <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered w-100 table-sm" id="TableTallas">
-            </table>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 </div>
 
-<script src="<?= asset('build/js/talla/index.js') ?>"></script>
+<!-- Información adicional -->
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-11">
+            <div class="alert alert-success border-0 rounded-4 shadow-sm" role="alert">
+                <h6 class="alert-heading">
+                    <i class="bi bi-info-circle me-2"></i>Información sobre Tallas
+                </h6>
+                <p class="mb-0">
+                    Las tallas registradas aparecerán disponibles para asociar con las dotaciones. 
+                    Asegúrese de que el código sea único y descriptivo. Puede usar códigos como: XS, S, M, L, XL para ropa o números para calzado.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div class="modal fade" id="modalConfirmar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center">
+                    <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                    <h6>¿Está seguro de que desea eliminar esta talla?</h6>
+                    <p class="text-muted">Esta acción no se puede deshacer.</p>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">
+                    <i class="fas fa-trash me-2"></i>Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="<?= asset('build/js/Talla/index.js') ?>"></script>

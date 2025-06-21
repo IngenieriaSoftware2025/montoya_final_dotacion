@@ -1,168 +1,127 @@
 <?php
-// ==============================================================
-// DotacionSolicitudController.php
-
 
 namespace Controllers;
 
 use Exception;
-use MVC\Router;
 use Model\ActiveRecord;
 use Model\DotacionSolicitud;
-use Model\DotacionSolicitudDetalle;
-use Model\DotacionInventario;
+use MVC\Router;
 
 class DotacionSolicitudController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        isAuth();
-        $router->render('dotacionsolicitud/index', []);
+        $router->render('DotacionSolicitud/index', []);
     }
 
-    public static function buscarAPI()
-    {
-        try {
-            $sql = "SELECT ds.*, e.empleado_nombres, e.empleado_apellidos, e.empleado_puesto
-                    FROM mrml_dotacion_solicitud ds
-                    JOIN mrml_empleados e ON ds.empleado_id = e.empleado_id
-                    WHERE ds.solicitud_situacion = 1 
-                    ORDER BY ds.solicitud_fecha DESC";
-            $data = self::fetchArray($sql);
-
-            // Agregar detalle a cada solicitud
-            foreach ($data as &$solicitud) {
-                $solicitudObj = new DotacionSolicitud(['solicitud_id' => $solicitud['solicitud_id']]);
-                $solicitud['detalle'] = $solicitudObj->obtenerDetalle();
-            }
-
-            http_response_code(200);
-            echo json_encode([
-                'codigo' => 1,
-                'mensaje' => 'Solicitudes obtenidas correctamente',
-                'data' => $data
-            ]);
-
-        } catch (Exception $e) {
-            http_response_code(400);
-            echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al obtener las solicitudes',
-                'detalle' => $e->getMessage(),
-            ]);
-        }
-    }
-
+    // API: Guardar Solicitud
     public static function guardarAPI()
     {
         getHeadersApi();
 
-        // Validaciones básicas
-        if (empty($_POST['empleado_id'])) {
+        $campos = [
+            'empleado_id', 'solicitud_fecha'
+        ];
+
+        // Validar campos requeridos
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => "El campo $campo es requerido"]);
+                return;
+            }
+        }
+
+        // Validar empleado
+        if (!is_numeric($_POST['empleado_id']) || $_POST['empleado_id'] <= 0) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'El empleado es obligatorio']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Debe seleccionar un empleado válido']);
             return;
         }
 
-        // Validar que haya al menos un detalle
-        $detalles = json_decode($_POST['detalles'] ?? '[]', true);
-        if (empty($detalles)) {
+        // Validar fecha
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['solicitud_fecha'])) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'Debe agregar al menos un artículo solicitado']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Formato de fecha inválido']);
             return;
-        }
-
-        // Validar disponibilidad de stock para cada detalle
-        foreach ($detalles as $detalle) {
-            if (empty($detalle['tipo_dotacion_id']) || empty($detalle['talla_id'])) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Tipo de dotación y talla son obligatorios']);
-                return;
-            }
-
-            $cantidad = intval($detalle['cantidad'] ?? 1);
-            if ($cantidad <= 0) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'La cantidad debe ser mayor a 0']);
-                return;
-            }
-
-            // Verificar stock disponible
-            $stockDisponible = DotacionInventario::verificarStockDisponible(
-                $detalle['tipo_dotacion_id'], 
-                $detalle['talla_id'], 
-                $cantidad
-            );
-
-            if (!$stockDisponible) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'No hay suficiente stock disponible para uno de los artículos solicitados']);
-                return;
-            }
         }
 
         try {
-            // Crear solicitud
+            // Generar código automático
+            $codigo = DotacionSolicitud::generarCodigo();
+            
             $solicitud = new DotacionSolicitud([
-                'empleado_id' => intval($_POST['empleado_id']),
-                'solicitud_fecha' => $_POST['solicitud_fecha'] ?? null,
+                'solicitud_codigo' => $codigo,
+                'empleado_id' => $_POST['empleado_id'],
+                'solicitud_fecha' => $_POST['solicitud_fecha'],
+                'solicitud_observaciones' => $_POST['solicitud_observaciones'] ?? '',
                 'solicitud_estado' => 'PENDIENTE',
-                'solicitud_observaciones' => trim($_POST['solicitud_observaciones'] ?? ''),
                 'solicitud_situacion' => 1
             ]);
-
-            $resultado = $solicitud->crear();
             
-            if (!$resultado['resultado']) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Error al crear la solicitud']);
-                return;
-            }
-
-            $solicitudId = $resultado['id'];
-
-            // Crear detalles de solicitud
-            foreach ($detalles as $detalle) {
-                $solicitudDetalle = new DotacionSolicitudDetalle([
-                    'solicitud_id' => $solicitudId,
-                    'tipo_dotacion_id' => intval($detalle['tipo_dotacion_id']),
-                    'talla_id' => intval($detalle['talla_id']),
-                    'solicitud_det_cantidad' => intval($detalle['cantidad']),
-                    'solicitud_det_observaciones' => trim($detalle['observaciones'] ?? ''),
-                    'solicitud_det_situacion' => 1
-                ]);
-
-                $resultadoDetalle = $solicitudDetalle->crear();
-
-                if (!$resultadoDetalle['resultado']) {
-                    http_response_code(400);
-                    echo json_encode(['codigo' => 0, 'mensaje' => 'Error al crear detalle de solicitud']);
-                    return;
-                }
-            }
-
+            $solicitud->crear();
             echo json_encode([
-                'codigo' => 1,
+                'codigo' => 1, 
                 'mensaje' => 'Solicitud registrada correctamente',
-                'solicitud_id' => $solicitudId
+                'solicitud_codigo' => $codigo
             ]);
-
+            
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al guardar solicitud', 'detalle' => $e->getMessage()]);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al guardar', 'detalle' => $e->getMessage()]);
         }
     }
 
-    public static function aprobarAPI()
+    // API: Modificar Solicitud
+    public static function modificarAPI()
     {
         getHeadersApi();
         
         $id = $_POST['solicitud_id'] ?? null;
-        $aprobadoPor = $_POST['aprobado_por'] ?? null;
 
         if (!$id) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'ID de solicitud no proporcionado']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'ID no proporcionado']);
+            return;
+        }
+
+        $campos = [
+            'solicitud_codigo', 'empleado_id', 'solicitud_fecha'
+        ];
+
+        // Validar campos requeridos
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => "El campo $campo es requerido"]);
+                return;
+            }
+        }
+
+        // Validar empleado
+        if (!is_numeric($_POST['empleado_id']) || $_POST['empleado_id'] <= 0) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Debe seleccionar un empleado válido']);
+            return;
+        }
+
+        // Validar fecha
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['solicitud_fecha'])) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Formato de fecha inválido']);
+            return;
+        }
+
+        // Validar longitud del código
+        if (strlen($_POST['solicitud_codigo']) < 5) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El código de solicitud es muy corto']);
+            return;
+        }
+
+        if (strlen($_POST['solicitud_codigo']) > 20) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'El código de solicitud no puede exceder 20 caracteres']);
             return;
         }
 
@@ -175,83 +134,95 @@ class DotacionSolicitudController extends ActiveRecord
                 return;
             }
 
-            if ($solicitud->solicitud_estado != 'PENDIENTE') {
+            // Verificar que la solicitud esté en estado PENDIENTE para poder modificarla
+            if ($solicitud->solicitud_estado !== 'PENDIENTE') {
                 http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Solo se pueden aprobar solicitudes pendientes']);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'Solo se pueden modificar solicitudes en estado PENDIENTE']);
                 return;
             }
 
-            $solicitud->sincronizar([
-                'solicitud_estado' => 'APROBADA',
-                'solicitud_fecha_aprobacion' => date('Y-m-d'),
-                'solicitud_aprobado_por' => $aprobadoPor
-            ]);
+            // Verificar duplicidad de código (excluyendo el registro actual)
+            $existe = DotacionSolicitud::verificarExistente($_POST['solicitud_codigo'], $id);
+            if ($existe['codigo_existe']) {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe otra solicitud con ese código']);
+                return;
+            }
 
-            $resultado = $solicitud->actualizar();
+            // USAR EL MÉTODO ESPECÍFICO DEL MODELO
+            $resultado = $solicitud->actualizarDatos(
+                $_POST['solicitud_codigo'],
+                $_POST['empleado_id'],
+                $_POST['solicitud_fecha'],
+                $_POST['solicitud_observaciones'] ?? ''
+            );
 
             if ($resultado['resultado']) {
-                echo json_encode(['codigo' => 1, 'mensaje' => 'Solicitud aprobada correctamente']);
+                echo json_encode(['codigo' => 1, 'mensaje' => 'Solicitud actualizada correctamente']);
             } else {
                 http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo aprobar la solicitud']);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo actualizar la solicitud']);
             }
 
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al aprobar', 'detalle' => $e->getMessage()]);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al modificar', 'detalle' => $e->getMessage()]);
         }
     }
 
-    public static function rechazarAPI()
+    // API: Cambiar Estado de Solicitud
+    public static function cambiarEstadoAPI()
     {
         getHeadersApi();
         
         $id = $_POST['solicitud_id'] ?? null;
-        $observaciones = trim($_POST['observaciones'] ?? '');
+        $estado = $_POST['solicitud_estado'] ?? null;
 
-        if (!$id) {
+        if (!$id || !$estado) {
             http_response_code(400);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'ID de solicitud no proporcionado']);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'ID y estado son requeridos']);
+            return;
+        }
+
+        // Validar estados permitidos
+        $estados_validos = ['PENDIENTE', 'APROBADA', 'RECHAZADA', 'ENTREGADA'];
+        if (!in_array($estado, $estados_validos)) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Estado no válido']);
             return;
         }
 
         try {
             $solicitud = DotacionSolicitud::find($id);
-
+            
             if (!$solicitud) {
                 http_response_code(404);
                 echo json_encode(['codigo' => 0, 'mensaje' => 'Solicitud no encontrada']);
                 return;
             }
 
-            if ($solicitud->solicitud_estado != 'PENDIENTE') {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Solo se pueden rechazar solicitudes pendientes']);
-                return;
-            }
-
-            $solicitud->sincronizar([
-                'solicitud_estado' => 'RECHAZADA',
-                'solicitud_observaciones' => $observaciones
-            ]);
-
-            $resultado = $solicitud->actualizar();
+            // USAR EL MÉTODO ESPECÍFICO DEL MODELO
+            $aprobado_por = $_POST['aprobado_por'] ?? null;
+            $resultado = $solicitud->actualizarEstado($estado, $aprobado_por);
 
             if ($resultado['resultado']) {
-                echo json_encode(['codigo' => 1, 'mensaje' => 'Solicitud rechazada correctamente']);
+                echo json_encode(['codigo' => 1, 'mensaje' => 'Estado actualizado correctamente']);
             } else {
                 http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo rechazar la solicitud']);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo actualizar el estado']);
             }
-
+            
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al rechazar', 'detalle' => $e->getMessage()]);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al cambiar estado', 'detalle' => $e->getMessage()]);
         }
     }
 
+    // API: Eliminar Solicitud (eliminación lógica)
     public static function eliminarAPI()
     {
+        getHeadersApi();
+        
         $id = $_GET['id'] ?? null;
 
         if (!$id) {
@@ -262,31 +233,96 @@ class DotacionSolicitudController extends ActiveRecord
 
         try {
             $solicitud = DotacionSolicitud::find($id);
+            
             if (!$solicitud) {
                 http_response_code(404);
                 echo json_encode(['codigo' => 0, 'mensaje' => 'Solicitud no encontrada']);
                 return;
             }
 
-            // Solo permitir eliminar solicitudes pendientes o rechazadas
-            if (!in_array($solicitud->solicitud_estado, ['PENDIENTE', 'RECHAZADA'])) {
+            // Verificar que la solicitud esté en estado PENDIENTE para poder eliminarla
+            if ($solicitud->solicitud_estado !== 'PENDIENTE') {
                 http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'No se puede eliminar una solicitud aprobada o entregada']);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'Solo se pueden eliminar solicitudes en estado PENDIENTE']);
                 return;
             }
 
-            $solicitud->sincronizar(['solicitud_situacion' => 0]);
-            $solicitud->actualizar();
+            // USAR EL MÉTODO ESPECÍFICO DEL MODELO
+            $resultado = $solicitud->eliminarLogico();
 
-            // Eliminar también los detalles
-            $deleteDetalles = "UPDATE mrml_dotacion_solicitud_detalle SET solicitud_det_situacion = 0 WHERE solicitud_id = " . intval($id);
-            self::$db->exec($deleteDetalles);
-
-            echo json_encode(['codigo' => 1, 'mensaje' => 'Solicitud eliminada correctamente']);
+            if ($resultado['resultado']) {
+                echo json_encode(['codigo' => 1, 'mensaje' => 'Solicitud eliminada correctamente']);
+            } else {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo eliminar la solicitud']);
+            }
             
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['codigo' => 0, 'mensaje' => 'Error al eliminar', 'detalle' => $e->getMessage()]);
+        }
+    }
+
+    // API: Obtener todas las solicitudes activas
+    public static function obtenerActivasAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $solicitudes = DotacionSolicitud::obtenerActivas();
+            
+            // Verificar si hay datos
+            if (!empty($solicitudes)) {
+                echo json_encode(['codigo' => 1, 'datos' => $solicitudes]);
+            } else {
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No hay solicitudes registradas', 'datos' => []]);
+            }
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al obtener datos', 'detalle' => $e->getMessage()]);
+        }
+    }
+
+    // API: Obtener solicitudes por estado
+    public static function obtenerPorEstadoAPI()
+    {
+        getHeadersApi();
+        
+        $estado = $_GET['estado'] ?? 'PENDIENTE';
+        
+        try {
+            $solicitudes = DotacionSolicitud::obtenerPorEstado($estado);
+            
+            if (!empty($solicitudes)) {
+                echo json_encode(['codigo' => 1, 'datos' => $solicitudes]);
+            } else {
+                echo json_encode(['codigo' => 0, 'mensaje' => "No hay solicitudes en estado: $estado", 'datos' => []]);
+            }
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al obtener datos', 'detalle' => $e->getMessage()]);
+        }
+    }
+
+    // API: Obtener empleados para el select
+    public static function obtenerEmpleadosAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $empleados = DotacionSolicitud::obtenerEmpleados();
+            
+            if (!empty($empleados)) {
+                echo json_encode(['codigo' => 1, 'datos' => $empleados]);
+            } else {
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No hay empleados registrados', 'datos' => []]);
+            }
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al obtener empleados', 'detalle' => $e->getMessage()]);
         }
     }
 }

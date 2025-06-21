@@ -28,27 +28,27 @@ CREATE TABLE talla (
 );
 
 -- Insertar tallas
-INSERT INTO talla (talla_codigo, talla_descripcion) VALUES
 -- Tallas para calzado
-('35', 'Talla 35'),
-('36', 'Talla 36'),
-('37', 'Talla 37'),
-('38', 'Talla 38'),
-('39', 'Talla 39'),
-('40', 'Talla 40'),
-('41', 'Talla 41'),
-('42', 'Talla 42'),
-('43', 'Talla 43'),
-('44', 'Talla 44'),
-('45', 'Talla 45'),
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('35', 'Talla 35');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('36', 'Talla 36');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('37', 'Talla 37');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('38', 'Talla 38');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('39', 'Talla 39');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('40', 'Talla 40');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('41', 'Talla 41');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('42', 'Talla 42');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('43', 'Talla 43');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('44', 'Talla 44');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('45', 'Talla 45');
+
 -- Tallas para ropa
-('XS', 'Extra Small'),
-('S', 'Small'),
-('M', 'Medium'),
-('L', 'Large'),
-('XL', 'Extra Large'),
-('XXL', 'Extra Extra Large'),
-('XXXL', 'Triple Extra Large');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('XS', 'Extra Small');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('S', 'Small');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('M', 'Medium');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('L', 'Large');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('XL', 'Extra Large');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('XXL', 'Extra Extra Large');
+INSERT INTO talla (talla_codigo, talla_descripcion) VALUES ('XXXL', 'Triple Extra Large');
 
 -- =============================================
 -- TABLA: INVENTARIO DOTACION
@@ -326,32 +326,4 @@ SELECT
 FROM empleado e
 LEFT JOIN dotacion_control_anual dca ON e.empleado_id = dca.empleado_id
 WHERE e.empleado_situacion = 1;
-
--- =============================================
--- DATOS DE EJEMPLO
--- =============================================
-
--- Empleados de ejemplo
-INSERT INTO empleado (empleado_codigo, empleado_nombres, empleado_apellidos, empleado_puesto, empleado_departamento) VALUES
-('EMP001', 'Juan Carlos', 'García López', 'Operario', 'Producción'),
-('EMP002', 'María Elena', 'Rodríguez Morales', 'Supervisora', 'Calidad'),
-('EMP003', 'Pedro Antonio', 'Martínez Pérez', 'Técnico', 'Mantenimiento'),
-('EMP004', 'Ana Patricia', 'Hernández Castillo', 'Operaria', 'Producción'),
-('EMP005', 'Luis Fernando', 'Gómez Ramírez', 'Jefe de Turno', 'Producción');
-
--- Inventario de ejemplo
-INSERT INTO dotacion_inventario (dotacion_inv_codigo, tipo_dotacion_id, talla_id, dotacion_inv_marca, dotacion_inv_modelo, dotacion_inv_color, dotacion_inv_cantidad_inicial, dotacion_inv_cantidad_actual, dotacion_inv_precio_unitario) VALUES
--- Botas
-('BOT-001-39', 1, 3, 'CATERPILLAR', 'Steel Toe', 'Negro', 20, 20, 450.00),
-('BOT-002-40', 1, 4, 'CATERPILLAR', 'Steel Toe', 'Negro', 25, 25, 450.00),
-('BOT-003-41', 1, 5, 'CATERPILLAR', 'Steel Toe', 'Negro', 30, 30, 450.00),
-('BOT-004-42', 1, 6, 'CATERPILLAR', 'Steel Toe', 'Negro', 25, 25, 450.00),
--- Camisas
-('CAM-001-M', 2, 14, 'DICKIES', 'Work Shirt', 'Azul', 50, 50, 125.00),
-('CAM-002-L', 2, 15, 'DICKIES', 'Work Shirt', 'Azul', 60, 60, 125.00),
-('CAM-003-XL', 2, 16, 'DICKIES', 'Work Shirt', 'Azul', 40, 40, 125.00),
--- Pantalones
-('PAN-001-M', 3, 14, 'DICKIES', 'Work Pants', 'Azul Marino', 30, 30, 180.00),
-('PAN-002-L', 3, 15, 'DICKIES', 'Work Pants', 'Azul Marino', 35, 35, 180.00),
-('PAN-003-XL', 3, 16, 'DICKIES', 'Work Pants', 'Azul Marino', 25, 25, 180.00);
 

@@ -3,351 +3,353 @@
 namespace Controllers;
 
 use Exception;
-use MVC\Router;
 use Model\ActiveRecord;
 use Model\Empleado;
+use MVC\Router;
 
 class EmpleadoController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        isAuth();
         $router->render('empleado/index', []);
     }
 
-    /**
-     * API para buscar empleados
-     */
-    public static function buscarAPI()
+    // API: Obtener Empleados
+    public static function obtenerEmpleadosAPI()
     {
-        try {
-            // Consulta simple solo de la tabla empleado
-            $empleados = self::fetchArray("SELECT * FROM mrml_empleados WHERE empleado_situacion = 1");
+        getHeadersApi();
 
-            // Procesar datos adicionales
-            foreach ($empleados as &$empleado) {
-                // Formatear fecha de contratación
-                if (!empty($empleado['empleado_fecha_contratacion'])) {
-                    $empleado['fecha_formateada'] = date('d/m/Y', strtotime($empleado['empleado_fecha_contratacion']));
-                } else {
-                    $empleado['fecha_formateada'] = 'N/A';
-                }
-                
-                // Formatear salario
-                $empleado['salario_formateado'] = 'Q. ' . number_format($empleado['empleado_salario'], 2);
-            }
+        try {
+            $empleados = self::fetchArray("
+                SELECT 
+                    empleado_id,
+                    empleado_codigo,
+                    empleado_nombres,
+                    empleado_apellidos,
+                    empleado_dpi,
+                    empleado_puesto,
+                    empleado_departamento,
+                    empleado_fecha_ingreso,
+                    empleado_telefono,
+                    empleado_correo,
+                    empleado_direccion,
+                    empleado_situacion,
+                    empleado_fecha_registro
+                FROM empleado
+                WHERE empleado_situacion = 1
+                ORDER BY empleado_apellidos ASC, empleado_nombres ASC
+            ");
             
-            http_response_code(200);
             echo json_encode([
-                'codigo' => 1,
-                'mensaje' => 'Empleados encontrados correctamente',
-                'data' => $empleados
+                'codigo' => 1, 
+                'mensaje' => 'Éxito', 
+                'datos' => $empleados
             ]);
             
         } catch (Exception $e) {
-            error_log("Error buscando empleados: " . $e->getMessage());
+            error_log("Error al obtener empleados: " . $e->getMessage());
             http_response_code(500);
             echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al cargar empleados',
+                'codigo' => 0, 
+                'mensaje' => 'Error al obtener los datos', 
                 'detalle' => $e->getMessage()
             ]);
         }
     }
 
-    /**
-     * API para guardar empleado
-     */
+    // API: Guardar Empleado
     public static function guardarAPI()
     {
         getHeadersApi();
-        
+
+        $campos = [
+            'empleado_codigo', 'empleado_nombres', 'empleado_apellidos'
+        ];
+
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => "Falta el campo $campo"]);
+                return;
+            }
+        }
+
+        // Validaciones específicas
+        if (strlen($_POST['empleado_codigo']) > 20) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Código demasiado largo (máximo 20 caracteres)']);
+            return;
+        }
+
+        if (strlen($_POST['empleado_nombres']) > 100) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Nombres demasiado largos (máximo 100 caracteres)']);
+            return;
+        }
+
+        if (strlen($_POST['empleado_apellidos']) > 100) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Apellidos demasiado largos (máximo 100 caracteres)']);
+            return;
+        }
+
+        // Validar correo si se proporciona
+        if (!empty($_POST['empleado_correo']) && !filter_var($_POST['empleado_correo'], FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Formato de correo electrónico inválido']);
+            return;
+        }
+
+        // Verificar duplicidad de código y DPI
+        $existe = Empleado::verificarEmpleadoExistente($_POST['empleado_codigo'], $_POST['empleado_dpi'] ?? null);
+        if ($existe['codigo_existe']) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe un empleado con ese código']);
+            return;
+        }
+        if ($existe['dpi_existe']) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Ya existe un empleado con ese DPI']);
+            return;
+        }
+
         try {
-            // Validar campos obligatorios
-            $campos = [
-                'empleado_nom1', 'empleado_ape1', 'empleado_tel', 'empleado_dpi',
-                'empleado_correo', 'empleado_especialidad', 'empleado_salario'
-            ];
-
-            foreach ($campos as $campo) {
-                if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
-                    http_response_code(400);
-                    echo json_encode(['codigo' => 0, 'mensaje' => "Falta el campo $campo"]);
-                    return;
-                }
-            }
-
-            // Validar longitudes
-            if (strlen($_POST['empleado_nom1']) < 2 || strlen($_POST['empleado_ape1']) < 2) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Nombre o apellido demasiado corto']);
-                return;
-            }
-
-            // Validar teléfono
-            $tel = filter_var($_POST['empleado_tel'], FILTER_SANITIZE_NUMBER_INT);
-            if (strlen($tel) != 8) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'El teléfono debe tener 8 dígitos']);
-                return;
-            }
-
-            // Validar DPI
-            if (strlen($_POST['empleado_dpi']) != 13) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'El DPI debe tener 13 dígitos']);
-                return;
-            }
-
-            // Validar correo
-            if (!filter_var($_POST['empleado_correo'], FILTER_VALIDATE_EMAIL)) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Correo inválido']);
-                return;
-            }
-
-            // Validar salario
-            if (!is_numeric($_POST['empleado_salario']) || $_POST['empleado_salario'] <= 0) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'El salario debe ser un número mayor a 0']);
-                return;
-            }
-
-            // Verificar duplicidad usando el método del modelo
-            try {
-                $existe = Empleado::verificarEmpleadoExistente($_POST['empleado_correo'], $_POST['empleado_dpi']);
-                
-                if (isset($existe['correo_existe']) && $existe['correo_existe'] > 0) {
-                    http_response_code(400);
-                    echo json_encode(['codigo' => 0, 'mensaje' => 'El correo ya está registrado']);
-                    return;
-                }
-                
-                if (isset($existe['dpi_existe']) && $existe['dpi_existe'] > 0) {
-                    http_response_code(400);
-                    echo json_encode(['codigo' => 0, 'mensaje' => 'El DPI ya está registrado']);
-                    return;
-                }
-            } catch (Exception $e) {
-                error_log("Error verificando duplicidad: " . $e->getMessage());
-                // Continuar sin verificar duplicidad si hay error
-            }
-
-            // Crear empleado
             $empleado = new Empleado([
-                'empleado_nom1' => ucwords(strtolower(trim($_POST['empleado_nom1']))),
-                'empleado_nom2' => ucwords(strtolower(trim($_POST['empleado_nom2'] ?? ''))),
-                'empleado_ape1' => ucwords(strtolower(trim($_POST['empleado_ape1']))),
-                'empleado_ape2' => ucwords(strtolower(trim($_POST['empleado_ape2'] ?? ''))),
-                'empleado_dpi' => trim($_POST['empleado_dpi']),
-                'empleado_tel' => $_POST['empleado_tel'],
-                'empleado_correo' => strtolower(trim($_POST['empleado_correo'])),
-                'empleado_especialidad' => trim($_POST['empleado_especialidad']),
-                'empleado_salario' => floatval($_POST['empleado_salario']),
+                'empleado_codigo' => $_POST['empleado_codigo'],
+                'empleado_nombres' => $_POST['empleado_nombres'],
+                'empleado_apellidos' => $_POST['empleado_apellidos'],
+                'empleado_dpi' => $_POST['empleado_dpi'] ?? '',
+                'empleado_puesto' => $_POST['empleado_puesto'] ?? '',
+                'empleado_departamento' => $_POST['empleado_departamento'] ?? '',
+                'empleado_fecha_ingreso' => $_POST['empleado_fecha_ingreso'] ?? '',
+                'empleado_telefono' => $_POST['empleado_telefono'] ?? '',
+                'empleado_correo' => $_POST['empleado_correo'] ?? '',
+                'empleado_direccion' => $_POST['empleado_direccion'] ?? '',
                 'empleado_situacion' => 1
             ]);
+            
+            $empleado->crear();
 
-            $resultado = $empleado->crear();
-
-            if ($resultado && $resultado['resultado']) {
-                echo json_encode([
-                    'codigo' => 1,
-                    'mensaje' => 'Empleado registrado correctamente'
-                ]);
-            } else {
-                http_response_code(400);
-                echo json_encode([
-                    'codigo' => 0,
-                    'mensaje' => 'Error al guardar empleado'
-                ]);
-            }
-
+            echo json_encode(['codigo' => 1, 'mensaje' => 'Empleado registrado correctamente']);
+            
         } catch (Exception $e) {
-            error_log("Error guardando empleado: " . $e->getMessage());
+            error_log("Error al guardar empleado: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al guardar empleado',
-                'detalle' => $e->getMessage()
-            ]);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al guardar', 'detalle' => $e->getMessage()]);
         }
     }
 
-    /**
-     * API para actualizar empleado
-     */
+    // API: Modificar Empleado
     public static function modificarAPI()
     {
         getHeadersApi();
         
+        $id = $_POST['empleado_id'] ?? null;
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'ID no proporcionado']);
+            return;
+        }
+
+        // Validar campos requeridos
+        $campos = [
+            'empleado_codigo', 'empleado_nombres', 'empleado_apellidos'
+        ];
+
+        foreach ($campos as $campo) {
+            if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => "Falta el campo $campo"]);
+                return;
+            }
+        }
+
+        // Validaciones específicas
+        if (strlen($_POST['empleado_codigo']) > 20) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Código demasiado largo']);
+            return;
+        }
+
+        if (strlen($_POST['empleado_nombres']) > 100) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Nombres demasiado largos']);
+            return;
+        }
+
+        if (strlen($_POST['empleado_apellidos']) > 100) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Apellidos demasiado largos']);
+            return;
+        }
+
+        // Validar correo si se proporciona
+        if (!empty($_POST['empleado_correo']) && !filter_var($_POST['empleado_correo'], FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Formato de correo electrónico inválido']);
+            return;
+        }
+
         try {
-            $empleado_id = $_POST['empleado_id'] ?? null;
-            
-            if (!$empleado_id) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'ID no proporcionado']);
-                return;
-            }
+            $empleado = Empleado::find($id);
 
-            // Validar campos obligatorios (mismo código que en guardar)
-            $campos = [
-                'empleado_nom1', 'empleado_ape1', 'empleado_tel', 'empleado_dpi',
-                'empleado_correo', 'empleado_especialidad', 'empleado_salario'
-            ];
-
-            foreach ($campos as $campo) {
-                if (!isset($_POST[$campo]) || $_POST[$campo] === '') {
-                    http_response_code(400);
-                    echo json_encode(['codigo' => 0, 'mensaje' => "Falta el campo $campo"]);
-                    return;
-                }
-            }
-
-            // Validaciones (mismo código que en guardar)
-            if (strlen($_POST['empleado_nom1']) < 2 || strlen($_POST['empleado_ape1']) < 2) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Nombre o apellido demasiado corto']);
-                return;
-            }
-
-            $tel = filter_var($_POST['empleado_tel'], FILTER_SANITIZE_NUMBER_INT);
-            if (strlen($tel) != 8) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'El teléfono debe tener 8 dígitos']);
-                return;
-            }
-
-            if (strlen($_POST['empleado_dpi']) != 13) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'El DPI debe tener 13 dígitos']);
-                return;
-            }
-
-            if (!filter_var($_POST['empleado_correo'], FILTER_VALIDATE_EMAIL)) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'Correo inválido']);
-                return;
-            }
-
-            if (!is_numeric($_POST['empleado_salario']) || $_POST['empleado_salario'] <= 0) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'El salario debe ser un número mayor a 0']);
-                return;
-            }
-
-            // Encontrar el empleado
-            $empleado = Empleado::find($empleado_id);
             if (!$empleado) {
                 http_response_code(404);
                 echo json_encode(['codigo' => 0, 'mensaje' => 'Empleado no encontrado']);
                 return;
             }
 
-            // Verificar duplicidad excluyendo el empleado actual
-            try {
-                $existe = Empleado::verificarEmpleadoExistente($_POST['empleado_correo'], $_POST['empleado_dpi'], $empleado_id);
-                
-                if (isset($existe['correo_existe']) && $existe['correo_existe'] > 0) {
-                    http_response_code(400);
-                    echo json_encode(['codigo' => 0, 'mensaje' => 'El correo ya está registrado por otro empleado']);
-                    return;
-                }
-                
-                if (isset($existe['dpi_existe']) && $existe['dpi_existe'] > 0) {
-                    http_response_code(400);
-                    echo json_encode(['codigo' => 0, 'mensaje' => 'El DPI ya está registrado por otro empleado']);
-                    return;
-                }
-            } catch (Exception $e) {
-                error_log("Error verificando duplicidad en modificar: " . $e->getMessage());
-                // Continuar sin verificar duplicidad si hay error
+            // Verificar duplicidad (excluyendo el registro actual)
+            $existe = Empleado::verificarEmpleadoExistente($_POST['empleado_codigo'], $_POST['empleado_dpi'] ?? null, $id);
+            if ($existe['codigo_existe']) {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'Código ya registrado por otro empleado']);
+                return;
+            }
+            if ($existe['dpi_existe']) {
+                http_response_code(400);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'DPI ya registrado por otro empleado']);
+                return;
             }
 
-            // Sincronizar datos
-            $empleado->sincronizar([
-                'empleado_nom1' => ucwords(strtolower(trim($_POST['empleado_nom1']))),
-                'empleado_nom2' => ucwords(strtolower(trim($_POST['empleado_nom2'] ?? ''))),
-                'empleado_ape1' => ucwords(strtolower(trim($_POST['empleado_ape1']))),
-                'empleado_ape2' => ucwords(strtolower(trim($_POST['empleado_ape2'] ?? ''))),
-                'empleado_dpi' => trim($_POST['empleado_dpi']),
-                'empleado_tel' => $_POST['empleado_tel'],
-                'empleado_correo' => strtolower(trim($_POST['empleado_correo'])),
-                'empleado_especialidad' => trim($_POST['empleado_especialidad']),
-                'empleado_salario' => floatval($_POST['empleado_salario']),
-                'empleado_situacion' => 1
-            ]);
+            // Usar método personalizado
+            $datosActualizacion = [
+                'empleado_codigo' => $_POST['empleado_codigo'],
+                'empleado_nombres' => $_POST['empleado_nombres'],
+                'empleado_apellidos' => $_POST['empleado_apellidos'],
+                'empleado_dpi' => $_POST['empleado_dpi'] ?? '',
+                'empleado_puesto' => $_POST['empleado_puesto'] ?? '',
+                'empleado_departamento' => $_POST['empleado_departamento'] ?? '',
+                'empleado_fecha_ingreso' => $_POST['empleado_fecha_ingreso'] ?? '',
+                'empleado_telefono' => $_POST['empleado_telefono'] ?? '',
+                'empleado_correo' => $_POST['empleado_correo'] ?? '',
+                'empleado_direccion' => $_POST['empleado_direccion'] ?? ''
+            ];
 
-            $resultado = $empleado->actualizar();
+            $resultado = $empleado->actualizarEmpleadoPersonalizado($datosActualizacion);
 
-            if ($resultado && $resultado['resultado']) {
-                echo json_encode([
-                    'codigo' => 1,
-                    'mensaje' => 'Empleado actualizado correctamente'
-                ]);
+            if ($resultado['resultado']) {
+                echo json_encode(['codigo' => 1, 'mensaje' => 'Empleado actualizado correctamente']);
             } else {
                 http_response_code(400);
-                echo json_encode([
-                    'codigo' => 0,
-                    'mensaje' => 'No se pudo actualizar el empleado'
-                ]);
+                echo json_encode(['codigo' => 0, 'mensaje' => $resultado['mensaje']]);
             }
 
         } catch (Exception $e) {
-            error_log("Error modificando empleado: " . $e->getMessage());
+            error_log("Error al modificar empleado: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al modificar empleado',
-                'detalle' => $e->getMessage()
-            ]);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al modificar', 'detalle' => $e->getMessage()]);
         }
     }
 
-    /**
-     * API para eliminar empleado
-     */
+    // API: Eliminar Empleado (lógico)
     public static function eliminarAPI()
     {
-        try {
-            $empleado_id = $_GET['id'] ?? null;
-            
-            if (!$empleado_id) {
-                http_response_code(400);
-                echo json_encode(['codigo' => 0, 'mensaje' => 'ID no válido']);
-                return;
-            }
+        getHeadersApi();
 
-            $empleado = Empleado::find($empleado_id);
+        $id = $_GET['id'] ?? null;
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'ID no válido']);
+            return;
+        }
+
+        try {
+            $empleado = Empleado::find($id);
             if (!$empleado) {
                 http_response_code(404);
                 echo json_encode(['codigo' => 0, 'mensaje' => 'Empleado no encontrado']);
                 return;
             }
 
-            $empleado->sincronizar(['empleado_situacion' => 0]);
-            $resultado = $empleado->actualizar();
+            $resultado = $empleado->eliminarLogico();
 
-            if ($resultado && $resultado['resultado']) {
-                echo json_encode([
-                    'codigo' => 1,
-                    'mensaje' => 'Empleado eliminado correctamente'
-                ]);
+            if ($resultado['resultado']) {
+                echo json_encode(['codigo' => 1, 'mensaje' => 'Empleado eliminado correctamente']);
             } else {
-                http_response_code(400);
-                echo json_encode([
-                    'codigo' => 0,
-                    'mensaje' => 'No se pudo eliminar el empleado'
-                ]);
+                echo json_encode(['codigo' => 0, 'mensaje' => 'No se pudo eliminar el empleado']);
             }
-
+            
         } catch (Exception $e) {
-            error_log("Error eliminando empleado: " . $e->getMessage());
+            error_log("Error al eliminar empleado: " . $e->getMessage());
             http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al eliminar', 'detalle' => $e->getMessage()]);
+        }
+    }
+
+    // API: Buscar Empleados
+    public static function buscarAPI()
+    {
+        getHeadersApi();
+
+        $criterio = $_GET['criterio'] ?? '';
+        $valor = $_GET['valor'] ?? '';
+
+        try {
+            $empleados = Empleado::buscarEmpleados($criterio, $valor);
+            
             echo json_encode([
-                'codigo' => 0,
-                'mensaje' => 'Error al eliminar empleado',
-                'detalle' => $e->getMessage()
+                'codigo' => 1, 
+                'mensaje' => 'Éxito', 
+                'datos' => $empleados
             ]);
+            
+        } catch (Exception $e) {
+            error_log("Error al buscar empleados: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al buscar empleados', 'detalle' => $e->getMessage()]);
+        }
+    }
+
+    // API: Obtener Estadísticas
+    public static function obtenerEstadisticasAPI()
+    {
+        getHeadersApi();
+
+        try {
+            $estadisticas = Empleado::obtenerEstadisticasEmpleados();
+            
+            echo json_encode([
+                'codigo' => 1, 
+                'mensaje' => 'Éxito', 
+                'datos' => $estadisticas
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error al obtener estadísticas: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al obtener estadísticas', 'detalle' => $e->getMessage()]);
+        }
+    }
+
+    // API: Obtener Empleados por Departamento
+    public static function obtenerPorDepartamentoAPI()
+    {
+        getHeadersApi();
+
+        $departamento = $_GET['departamento'] ?? '';
+
+        if (!$departamento) {
+            http_response_code(400);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Departamento no especificado']);
+            return;
+        }
+
+        try {
+            $empleados = Empleado::obtenerPorDepartamento($departamento);
+            
+            echo json_encode([
+                'codigo' => 1, 
+                'mensaje' => 'Éxito', 
+                'datos' => $empleados
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error al obtener empleados por departamento: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['codigo' => 0, 'mensaje' => 'Error al obtener empleados', 'detalle' => $e->getMessage()]);
         }
     }
 }
